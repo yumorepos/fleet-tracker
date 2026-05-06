@@ -56,6 +56,18 @@ uv run python -m fleet_tracker.collectors.opensky --icao24 c01040 --airline ac -
 
 The example uses an icao24 hex code directly. To use registration syntax (`--tail C-FBOM`), populate the icao24 column in `data/reference/ac-mainline.csv` first. See [docs/data-sources.md](docs/data-sources.md) for the lookup technique.
 
+## Sample output
+
+Trimmed from a real slice run on 2026-05-05 against C-FBOM (icao24 c01040):
+
+```
+opensky: wrote cache C01040_20260506.json (1 records)
+opensky[C01040]: 1 flights, null estDepartureAirport=1 (100.0%), null estArrivalAirport=0 (0.0%) — exceeds 5% threshold from DESIGN §1
+Wrote data/flights/airline=ac/year=2026/month=05/flights.parquet
+```
+
+The 100% null `estDepartureAirport` rate on this single flight is a structural OpenSky pattern at smaller airports, not a bug — see "Notes on the data" below.
+
 ## Contributing
 
 If you work on a fleet planning team and notice something off in this data, please open an issue. Better to be corrected than wrong.
