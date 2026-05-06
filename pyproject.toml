@@ -18,6 +18,13 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
 ]
+notebook = [
+    # Optional. `uv sync --group notebook` to enable notebooks/.
+    "pandas>=2.2.0",
+    "matplotlib>=3.8.0",
+    "jupyter>=1.1.0",
+    "nbconvert>=7.16.0",
+]
 
 [build-system]
 requires = ["hatchling"]
