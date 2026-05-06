@@ -13,7 +13,7 @@ For the broader landscape research that produced these decisions, see [docs/RESE
 | Planespotters fleet pages | Ownership secondary, photo metadata | Phase 4 stub | Weekly per tail | Photo links only, never re-host images. |
 | AeroLOPA | Seat maps | Phase 4 stub | Per sub-fleet | URL link-out per sub-fleet; no embed. |
 | Airline press releases | High-confidence ownership / retrofit confirmations | Phase 4 stub | Event-driven | Tail-named facts carry confidence 1.00 (DESIGN §2). |
-| Wikipedia fleet tables | Reference roster seed | Manual (v1) → quarterly diff (Phase 4) | Curated into `data/reference/{ac,dl}-mainline.csv`. |
+| Wikipedia airline fleet articles | Type-level ownership cross-check + reference roster seed | **Active in v1** (collector) + manual seeding | Daily per airline (cached); seed CSVs curated separately | CC-BY-SA-4.0; type-level only, base confidence 0.65 (DESIGN §2). |
 | FlightAware AeroAPI | Live flights (alternative) | Skipped (v1 + v1.5) | n/a | $5/mo personal allowance does not cover public-dashboard redistribution. |
 | ADS-B Exchange | Live flights (alternative) | Skipped (v1) | n/a | Commercial license required for public dashboards. |
 | Flightradar24 | Hangar dwell tracking | Deferred to v1.5 | n/a | Paid tier; stub `hangar_tracker` collector exists. |
@@ -69,6 +69,19 @@ Correlate the icao24 with the tail's known route or aircraft type (AC9 is normal
 Reliable correlation requires a registration database (airfleets, Wikipedia, or a paid source like ch-aviation), and Fleet Tracker's v1 collectors for those sources are stubbed. v1.5 is the right place to build automated discovery: the nightly job already pulls from airfleets for ownership, so the same scrape pass can extract the icao24 mapping into a `data/reference/icao24-map.csv` that the collector consults transparently.
 
 For v1, manual curation of 5-10 seed tails per airline is acceptable — that's roughly 15 minutes per airline of grepping `/states/all` snapshots and correlating against known routes.
+
+## Wikipedia airline fleet articles (active in v1)
+
+- **Pages used**: `https://en.wikipedia.org/wiki/{airline}_fleet` (e.g. `Air_Canada_fleet`, `Delta_Air_Lines_fleet`).
+- **What gets parsed**: the *Current fleet* wikitable. Type-level: aircraft type, in-service count, orders, seat configuration (J/W/Y/total), and the free-text Notes column.
+- **What does NOT exist on these pages**: per-tail registration tables. The user-facing impact: Wikipedia observations confirm "this airline operates this aircraft type", attached to seed-CSV tails by aircraft_type match. Per-tail ownership has to come from airfleets/Planespotters (deferred) or OpenSky metadata.
+- **Confidence**: base 0.65, slightly below OpenSky's 0.70 (DESIGN §2). Lower because: community-edited rather than a declarative airline source; type-level only; tail-level changes lag by weeks-to-months.
+- **Refresh / cache**: filename-date governance, mirrored from the OpenSky cache (DESIGN §1). One cached HTML per airline per UTC day in `data/cache/wikipedia/{airline}_fleet_{YYYYMMDD}.html`.
+- **User-Agent**: `FleetTrackerBot/0.1 (...)`, identifiable per Wikipedia's bot policy.
+- **Licence**: article text is CC-BY-SA-4.0. The captured fixture in `tests/fixtures/wikipedia_ac_fleet.html` carries an attribution comment in its header.
+- **Multi-config types**: aircraft types with two cabin configs (e.g. AC's A321-200 with one fleet of 16J/180Y and another of 8W/176Y) appear as separate rows. The parser preserves them; aggregate by `aircraft_type` if you want a per-type rollup.
+
+The collector lives at `src/fleet_tracker/collectors/wikipedia_fleet.py` and exposes `fetch_fleet_html(airline)`, `parse_current_fleet(html) -> list[FleetTypeRow]`, and `find_rows_for_type(rows, "A220-300")` for the seed-CSV match.
 
 ## Airfleets, Planespotters, AeroLOPA (Phase 4 stubs)
 

@@ -8,7 +8,10 @@ import duckdb
 import pytest
 
 from fleet_tracker import db
-from fleet_tracker.ingest import write_ownership_observation
+from fleet_tracker.ingest import (
+    write_fleet_membership_observation,
+    write_ownership_observation,
+)
 from fleet_tracker.model import FleetTrackerSource, OwnershipSignal
 
 
@@ -104,3 +107,73 @@ def test_write_ownership_observation_default_observed_at_populated(conn):
         params=[obs_id],
     ).fetchone()[0]
     assert observed is not None
+
+
+# ---------------------------------------------------------------------------
+# write_fleet_membership_observation: type-level signal path (DESIGN §6)
+# ---------------------------------------------------------------------------
+
+
+def test_write_fleet_membership_observation_writes_one_row(conn):
+    obs_id = write_fleet_membership_observation(
+        conn,
+        tail_number="C-FBOM",
+        airline="Air Canada",
+        aircraft_type="Airbus A220-300",
+        source=FleetTrackerSource.WIKIPEDIA_FLEET,
+        source_url="https://en.wikipedia.org/wiki/Air_Canada_fleet",
+        confidence=0.65,
+        observed_at=datetime(2026, 5, 6, 12, 0, tzinfo=timezone.utc),
+    )
+    assert isinstance(obs_id, int) and obs_id > 0
+
+    rows = conn.sql(
+        "SELECT tail_number, signal_kind, signal_value, source, "
+        "       confidence, source_url, notes "
+        "FROM observations WHERE observation_id = ?",
+        params=[obs_id],
+    ).fetchall()
+    assert len(rows) == 1
+    tail, kind, value, source, conf, url, notes = rows[0]
+    assert tail == "C-FBOM"
+    assert kind == "fleet_membership"
+    assert value == "Airbus A220-300"  # the confirmed aircraft_type
+    assert source == "wikipedia_fleet"
+    assert conf == pytest.approx(0.65)
+    assert url == "https://en.wikipedia.org/wiki/Air_Canada_fleet"
+    assert "airline=Air Canada" in notes
+    assert "matched by aircraft_type" in notes
+
+
+def test_write_fleet_membership_observation_rejects_bad_confidence(conn):
+    with pytest.raises(ValueError, match="confidence must be in"):
+        write_fleet_membership_observation(
+            conn,
+            tail_number="C-FBOM",
+            airline="Air Canada",
+            aircraft_type="Airbus A220-300",
+            source=FleetTrackerSource.WIKIPEDIA_FLEET,
+            source_url="https://example.com",
+            confidence=-0.1,
+        )
+
+
+def test_write_fleet_membership_observation_appends_caller_notes(conn):
+    """Caller-supplied notes get appended after the canonical airline+match tag."""
+    obs_id = write_fleet_membership_observation(
+        conn,
+        tail_number="C-FBOM",
+        airline="Air Canada",
+        aircraft_type="Airbus A220-300",
+        source=FleetTrackerSource.WIKIPEDIA_FLEET,
+        source_url="https://en.wikipedia.org/wiki/Air_Canada_fleet",
+        confidence=0.65,
+        notes="captured 2026-05-06",
+    )
+    notes = conn.sql(
+        "SELECT notes FROM observations WHERE observation_id = ?",
+        params=[obs_id],
+    ).fetchone()[0]
+    assert notes.startswith("airline=Air Canada")
+    assert "matched by aircraft_type" in notes
+    assert "captured 2026-05-06" in notes
