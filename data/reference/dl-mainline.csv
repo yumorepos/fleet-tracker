@@ -1,0 +1,7 @@
+tail_number,icao24,aircraft_type,msn,sub_fleet,delivered,acquisition_type,acquisition_context
+N501DN,todo_lookup,A350-900,182,35H,2017-09-01,new_delivery,
+N512DN,todo_lookup,A350-900,250,35H,2018-08-01,new_delivery,
+N134DN,todo_lookup,A220-100,55014,22D,2018-12-01,new_delivery,
+N301DU,todo_lookup,A321-200,7220,32D,2016-04-01,new_delivery,
+N509NW,todo_lookup,757-200,29722,75G,2002-01-01,secondhand,Acquired via Delta-Northwest merger October 2008
+N802NW,todo_lookup,A330-300,815,33D,2007-04-01,secondhand,Acquired via Delta-Northwest merger October 2008

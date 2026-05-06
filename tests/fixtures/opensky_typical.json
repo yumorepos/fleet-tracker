@@ -1,0 +1,38 @@
+[
+  {
+    "icao24": "c01234",
+    "firstSeen": 1746460320,
+    "estDepartureAirport": "CYUL",
+    "lastSeen": 1746466080,
+    "estArrivalAirport": "CYYZ",
+    "callsign": "ACA456  ",
+    "estDepartureAirportHorizDistance": 1234,
+    "estDepartureAirportVertDistance": 50,
+    "estArrivalAirportHorizDistance": 980,
+    "estArrivalAirportVertDistance": 70,
+    "departureAirportCandidatesCount": 1,
+    "arrivalAirportCandidatesCount": 1
+  },
+  {
+    "icao24": "c01234",
+    "firstSeen": 1746427920,
+    "estDepartureAirport": "CYYZ",
+    "lastSeen": 1746433560,
+    "estArrivalAirport": "CYUL",
+    "callsign": "ACA457  ",
+    "estDepartureAirportHorizDistance": 1100,
+    "estArrivalAirportHorizDistance": 1500,
+    "departureAirportCandidatesCount": 1,
+    "arrivalAirportCandidatesCount": 1
+  },
+  {
+    "icao24": "c01234",
+    "firstSeen": 1746395820,
+    "estDepartureAirport": "CYUL",
+    "lastSeen": 1746401580,
+    "estArrivalAirport": "CYHZ",
+    "callsign": "ACA646  ",
+    "departureAirportCandidatesCount": 1,
+    "arrivalAirportCandidatesCount": 1
+  }
+]

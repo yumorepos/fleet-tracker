@@ -1,0 +1,36 @@
+# Phase 4 placeholder. Do not enable.
+#
+# This workflow will run the nightly collection job described in
+# docs/DESIGN.md §1 (v1.5 milestone). When v1.5 is reached, replace
+# this file with the real workflow definition. Until then, leaving the
+# trigger commented out keeps the file in repo for visibility without
+# scheduling anything.
+#
+# name: nightly-collection
+#
+# on:
+#   schedule:
+#     - cron: "17 4 * * *"  # 04:17 UTC nightly
+#   workflow_dispatch:
+#
+# jobs:
+#   collect:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: astral-sh/setup-uv@v5
+#         with:
+#           version: "0.10.8"
+#       - run: uv sync --frozen
+#       - name: Pull new flights for in-scope tails
+#         env:
+#           OPENSKY_USERNAME: ${{ secrets.OPENSKY_USERNAME }}
+#           OPENSKY_PASSWORD: ${{ secrets.OPENSKY_PASSWORD }}
+#         run: uv run python -m fleet_tracker.aggregate nightly
+#       - name: Commit Parquet updates
+#         run: |
+#           git config user.name "fleet-tracker-bot"
+#           git config user.email "bot@fleet-tracker"
+#           git add data/flights/
+#           git commit -m "Nightly collection $(date -u +%Y-%m-%d)" || true
+#           git push

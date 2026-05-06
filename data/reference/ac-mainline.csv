@@ -1,0 +1,8 @@
+tail_number,icao24,aircraft_type,msn,sub_fleet,delivered,acquisition_type,acquisition_context
+C-FBOM,todo_lookup,A220-300,55088,33H,2020-06-12,new_delivery,
+C-GROV,todo_lookup,A220-300,55117,33H,2021-04-15,new_delivery,
+C-FNOG,todo_lookup,787-9,37178,77B,2018-04-01,new_delivery,
+C-FIVK,todo_lookup,777-300ER,52286,77E,2014-09-01,new_delivery,
+C-GFAH,todo_lookup,A330-300,1334,33A,2012-06-01,,
+C-FRTW,todo_lookup,787-9,38356,77C,2019-11-01,new_delivery,
+C-FCSI,todo_lookup,A321-200,2961,32C,2007-03-01,new_delivery,

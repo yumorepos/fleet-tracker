@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.python-version
+
+# Environment files (secrets)
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Fleet Tracker data layer
+# fleet.duckdb is rebuildable from data/flights/ + data/reference/
+data/fleet.duckdb
+data/fleet.duckdb.wal
+
+# data/cache/flights/ is gitignored not because the data is private but
+# because re-publishing third-party data as a Fleet Tracker dataset would
+# change the licensing posture. See docs/ethics.md.
+data/cache/
+
+# Parquet archive: reproducible from collectors. Heavy and grows fast.
+# Keep the directory marker so the layout is visible.
+data/flights/*
+!data/flights/.gitkeep
+
+# Notebook outputs (keep .ipynb structure, drop run state)
+*-checkpoint.ipynb
+.ipynb_checkpoints/
+
+# Astro build artefacts (Phase 4)
+site/dist/
+site/.astro/
+site/node_modules/

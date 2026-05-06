@@ -1,0 +1,22 @@
+[
+  {
+    "icao24": "c01234",
+    "firstSeen": 1746460320,
+    "estDepartureAirport": null,
+    "lastSeen": 1746466080,
+    "estArrivalAirport": "CYYZ",
+    "callsign": "ACA456  ",
+    "departureAirportCandidatesCount": 0,
+    "arrivalAirportCandidatesCount": 1
+  },
+  {
+    "icao24": "c01234",
+    "firstSeen": 1746427920,
+    "estDepartureAirport": "CYYZ",
+    "lastSeen": 1746433560,
+    "estArrivalAirport": null,
+    "callsign": null,
+    "departureAirportCandidatesCount": 1,
+    "arrivalAirportCandidatesCount": 0
+  }
+]
