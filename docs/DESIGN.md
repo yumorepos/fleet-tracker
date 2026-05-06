@@ -462,8 +462,12 @@ CREATE TABLE ownership_history (
     acquisition_context  TEXT,                  -- free-text annotation, nullable
     PRIMARY KEY (tail_number, effective_from)
 );
-CREATE INDEX idx_ownership_current ON ownership_history (tail_number)
-    WHERE effective_to IS NULL;
+-- DuckDB does not support partial indexes (NotImplementedException as of
+-- 1.x). The intended spec was a partial index `WHERE effective_to IS NULL`
+-- to make "current owner" lookups predicate-pushdown cheap; instead we use
+-- a non-partial tail_number index and let the query planner filter on
+-- effective_to at scan time. Revisit if DuckDB lands partial-index support.
+CREATE INDEX idx_ownership_tail ON ownership_history (tail_number);
 ```
 
 ### `flights` (Parquet, partitioned, queried via DuckDB)
