@@ -225,7 +225,7 @@ The single task in Phase 3 that exercises the system end to end against real dat
 
 ### Fallback
 
-If C-FBOM has no flights in the OpenSky-permitted window at slice runtime, fall back to **C-GROV** (A321ceo). Reasoning: 787-9 widebodies on long-haul transatlantic / transpacific routes have known OpenSky coverage gaps over oceanic airspace and can return zero flights even when the aircraft is active. C-GROV is narrowbody on dense North American ADS-B coverage and is therefore a safer fallback. (This was open question 1 in the Phase 2 review; resolved by Yumo on 2026-05-05.)
+If C-FBOM has no flights in the OpenSky-permitted window at slice runtime, fall back to **C-GROV** (A220-300). Reasoning: 787-9 widebodies on long-haul transatlantic / transpacific routes have known OpenSky coverage gaps over oceanic airspace and can return zero flights even when the aircraft is active. C-GROV is narrowbody on dense North American ADS-B coverage and is therefore a safer fallback. (This was open question 1 in the Phase 2 review; resolved by Yumo on 2026-05-05.)
 
 ---
 
@@ -254,7 +254,7 @@ Explicit deferrals to Phase 4 (or v1.5):
 |---|---|---|---|
 | 1 | OpenSky credentials missing at vertical slice runtime | Low (flagged in prerequisites) | Fail loud with a clear error pointing to `.env` setup. Vertical slice prerequisites checked at module import. |
 | 2 | OpenSky `/flights/aircraft` history window is shorter than 24h | Medium | Instrument and report. If shorter, vertical slice still completes (returns fewer rows) and the actual window is documented in slice output for DESIGN §1 followup. |
-| 3 | C-FBOM has no flights in available window at slice runtime | Medium | Fall back to C-GROV (A321ceo on dense North American ADS-B coverage; safer than a widebody whose OpenSky gaps are over oceanic airspace). |
+| 3 | C-FBOM has no flights in available window at slice runtime | Medium | Fall back to C-GROV (A220-300 on dense North American ADS-B coverage; safer than a widebody whose OpenSky gaps are over oceanic airspace). |
 | 4 | `gh` CLI not authenticated | Low (flagged in prerequisites) | Task 15 stops before pushing and gives Yumo manual steps. No partial state left behind. |
 | 5 | DuckDB version drift between dev and CI | Low | Pin `duckdb` version in `pyproject.toml` with a one-line comment explaining why (e.g. "pinned for Hive partition append behaviour"). |
 | 6 | uv version drift in CI | Low | Pin `uv` version via `astral-sh/setup-uv@v5` (or equivalent action) with explicit version. |
@@ -267,10 +267,10 @@ Explicit deferrals to Phase 4 (or v1.5):
 ## Success criteria
 
 - `pytest` exits 0 across the full test suite (model, retrofit module + pristine hash, classify boundary, classify stubs, db, collectors with fixtures, collector stubs).
-- Vertical slice (`python -m fleet_tracker.collectors.opensky --tail C-FBOM --hours 24`) runs end to end against real OpenSky, exits 0, prints aggregate query results.
-- `data/cache/flights/C-FBOM_YYYYMMDD.json` and `data/flights/airline=ac/year=2026/month=05.parquet` exist after vertical slice run.
+- Vertical slice (`python -m fleet_tracker.collectors.opensky --icao24 c01040 --airline ac --hours 48`) runs end to end against real OpenSky, exits 0, prints aggregate query results.
+- `data/cache/flights/C01040_YYYYMMDD.json` and `data/flights/airline=ac/year=2026/month=05/flights.parquet` exist after vertical slice run.
 - GitHub repo `yumorepos/fleet-tracker` is live, public, with all scaffolded files pushed and README rendering.
-- All seven `docs/` files committed: `RESEARCH.md`, `DESIGN.md`, `PLAN.md`, `data-sources.md`, `scaling.md`, `ethics.md` (and any `data-sources.md` table populated for OpenSky).
+- All six `docs/` files committed: `RESEARCH.md`, `DESIGN.md`, `PLAN.md`, `data-sources.md`, `scaling.md`, `ethics.md` (and any `data-sources.md` table populated for OpenSky).
 - `ROADMAP.md` lists Phase 4 deferrals, v1.5 / v2 trajectory, and the retrofit-module editable-install conversion item.
 - All three checkpoints reached and acknowledged by Yumo before the next task starts.
 
@@ -282,7 +282,7 @@ All Phase 2 open questions resolved by Yumo's review on 2026-05-05.
 
 ### Resolution log (2026-05-05)
 
-1. Vertical slice fallback tail: C-GROV (A321ceo). 787-9 widebodies have OpenSky coverage gaps over oceanic airspace; C-GROV's dense North American ADS-B coverage makes it the safer fallback. Risk #3 mitigation updated.
+1. Vertical slice fallback tail: C-GROV (A220-300). 787-9 widebodies have OpenSky coverage gaps over oceanic airspace; C-GROV's dense North American ADS-B coverage makes it the safer fallback. Risk #3 mitigation updated.
 
 ---
 

@@ -182,12 +182,12 @@ Per Yumo's Phase 1 amendment:
           tail_number=ac.tail_number,
           airline=ac.airline,
           aircraft_type=ac.aircraft_type,
-          sub_fleet=ac.sub_fleet,
+          sub_fleet=ac.sub_fleet or "",  # retrofit module declares str, not Optional
           delivered=ac.delivered,
       )
   ```
 
-  The converter discards `msn`, `retired`, `current_state`, `last_confirmed_at`. The retrofit module does not need them; they would be dead weight inside that module.
+  The converter discards `msn`, `retired`, `current_state`, `last_confirmed_at`. The retrofit module does not need them; they would be dead weight inside that module. The `or ""` substitution handles tails where the airline-internal sub-fleet code isn't yet known; see `test_to_retrofit_aircraft_handles_missing_sub_fleet`.
 
   **Retired short-circuit**: callers of the retrofit module must handle `retired` themselves before invoking it. The convention lives in `compute_retrofit_state` (see §6 for code): if `aircraft.retired is not None`, return `(CabinState.UNKNOWN, None)` immediately without calling `retrofit.classify`. The retrofit module's classifier has no concept of retirement and will happily classify a stale observation against a long-retired tail; the short-circuit is the boundary's responsibility, not the module's. This keeps the retrofit module pristine and pushable upstream once `fleet-retrofit-tracker` ships.
 
@@ -454,7 +454,7 @@ CREATE TABLE ownership_history (
     owner_type           TEXT NOT NULL,         -- OwnershipSignal value
     owner_entity         TEXT NOT NULL,         -- 'Air Canada', 'AerCap', etc.
     source_url           TEXT NOT NULL,
-    confidence           FLOAT NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    confidence           DOUBLE NOT NULL CHECK (confidence BETWEEN 0 AND 1),
     -- acquisition_* are populated ONLY on the first ownership row for a tail
     -- at each operator (the row whose effective_from matches the operator's
     -- acquisition date). Subsequent rows leave both null. See §2 for rules.
@@ -506,7 +506,7 @@ CREATE TABLE observations (
     source_url      TEXT NOT NULL,
     signal_kind     TEXT NOT NULL,                  -- 'cabin' | 'ownership' | 'lifecycle' | 'flight'
     signal_value    TEXT NOT NULL,                  -- e.g. 'owned', 'in_service', 'retrofit'
-    confidence      FLOAT NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    confidence      DOUBLE NOT NULL CHECK (confidence BETWEEN 0 AND 1),
     notes           TEXT
 );
 CREATE INDEX idx_obs_tail_time ON observations (tail_number, observed_at DESC);

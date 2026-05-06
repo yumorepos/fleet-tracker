@@ -44,7 +44,7 @@ OPENSKY_TOKEN_URL = (
     "https://auth.opensky-network.org/auth/realms/opensky-network/"
     "protocol/openid-connect/token"
 )
-OPENSKY_MAX_WINDOW_HOURS = 48  # 2-day endpoint cap, with one-hour safety margin
+OPENSKY_MAX_WINDOW_HOURS = 48  # OpenSky /flights/aircraft 2-day endpoint cap
 DEFAULT_CACHE_ROOT = Path("data/cache/flights")
 DEFAULT_FLIGHTS_ROOT = Path("data/flights")
 DEFAULT_REFERENCE_ROOT = Path("data/reference")
