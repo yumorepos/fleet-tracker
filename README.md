@@ -15,7 +15,7 @@ The project answers questions that public fleet pages typically don't:
 
 ## Status
 
-Active development. The repository contains the data model, schema, full test suite (61 tests), and a working OpenSky live-flight collector with OAuth authentication. Additional collectors (Planespotters photos, airfleets ownership, AeroLOPA seat maps, airline press) are stubbed for Phase 4 with their interfaces defined. The Astro dashboard lives in `site/` and is also Phase 4 work.
+Active development. The repository contains the data model, schema, full test suite (61 tests), a working OpenSky live-flight collector with OAuth authentication, and `notebooks/01-fleet-overview.ipynb` — a fleet composition + data-quality-audit notebook over real OpenSky data. Additional collectors (Planespotters photos, airfleets ownership, AeroLOPA seat maps, airline press) are stubbed for Phase 4 with their interfaces defined. The Astro dashboard lives in `site/` and is also Phase 4 work.
 
 ## Stack
 
@@ -33,8 +33,9 @@ data/reference/           Hand-curated fleet rosters
 data/flights/             Parquet archive (gitignored)
 data/cache/flights/       24h fetch cache (gitignored)
 docs/                     Research, design, plan, methodology
+docs/img/                 Charts rendered from notebooks/
 tests/                    Pytest suite
-notebooks/                Jupyter analysis (Phase 4)
+notebooks/                Jupyter analysis (01 populated; 02-03 Phase 4)
 site/                     Astro dashboard (Phase 4)
 ```
 
@@ -51,22 +52,50 @@ uv run pytest
 
 # Vertical slice: pull recent flights for one Air Canada tail
 cp .env.example .env  # then add your OpenSky credentials
-uv run python -m fleet_tracker.collectors.opensky --icao24 c01040 --airline ac --hours 48
+uv run python -m fleet_tracker.collectors.opensky --tail C-GROV --hours 48
 ```
 
-The example uses an icao24 hex code directly. To use registration syntax (`--tail C-FBOM`), populate the icao24 column in `data/reference/ac-mainline.csv` first. See [docs/data-sources.md](docs/data-sources.md) for the lookup technique.
+The seed CSV at `data/reference/ac-mainline.csv` carries an `icao24` column populated for the tails the data-quality audit verified (4 of 7 AC tails, 4 of 6 DL tails — see notebook 01). Tails still marked `todo_lookup` need their icao24 populated before `--tail` mode works for them; pass `--icao24 <hex>` directly until then.
 
 ## Sample output
 
-Trimmed from a real slice run on 2026-05-05 against C-FBOM (icao24 c01040):
+A real slice run against C-GROV (an AC A220-300 on dense North American routes):
 
 ```
-opensky: wrote cache C01040_20260506.json (1 records)
-opensky[C01040]: 1 flights, null estDepartureAirport=1 (100.0%), null estArrivalAirport=0 (0.0%) — exceeds 5% threshold from DESIGN §1
+opensky: GET /flights/aircraft icao24=c0730e window=[2026-05-04T00:00:00+00:00, 2026-05-05T23:59:59+00:00] auth=oauth
+opensky: wrote cache C-GROV_20260506.json (4 records)
+opensky[C-GROV]: 4 flights, null estDepartureAirport=0 (0.0%), null estArrivalAirport=1 (25.0%) — exceeds 5% threshold from DESIGN §1
+
+4 flights for C-GROV (icao24=c0730e) over last 48h:
+  2026-05-05 21:37  CYUL -> ???   (ACA1573)
+  2026-05-05 17:36  KATL -> CYUL  (ACA1570)
+  2026-05-04 21:25  CYUL -> KATL  (ACA1573)
+  2026-05-04 15:50  KDEN -> CYUL  (ACA1072)
+
 Wrote data/flights/airline=ac/year=2026/month=05/flights.parquet
+
+Aggregate: distinct origin airports for C-GROV:
+  CYUL  2
+  KATL  1
+  KDEN  1
 ```
 
-The 100% null `estDepartureAirport` rate on this single flight is a structural OpenSky pattern at smaller airports, not a bug — see "Notes on the data" below.
+The single null `estArrivalAirport` is a structural OpenSky pattern at smaller airports, not a bug — see "Notes on the data" below. The collector preserves nulls rather than guessing.
+
+## What it looks like
+
+`notebooks/01-fleet-overview.ipynb` runs three passes over the seed roster + cached flight data: composition, a seed-vs-OpenSky data-quality audit, and recent activity. One chart from it:
+
+![Recent activity per tail — 48 hour OpenSky pull](docs/img/recent-activity.png)
+
+The notebook also surfaces what the audit found — 7 of 13 seed tails verifiable against OpenSky's metadata, 5 MSN mismatches and 2 type discrepancies (e.g., the seed listed N301DU as an A321-200; OpenSky says it's an A220-100). Open the notebook on GitHub to see the rendered cell outputs without running anything locally.
+
+To re-run:
+
+```bash
+uv sync --group notebook
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/01-fleet-overview.ipynb
+```
 
 ## Contributing
 
