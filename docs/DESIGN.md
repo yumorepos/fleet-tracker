@@ -87,8 +87,12 @@ Two-source consensus with manual tie-break, recency-weighted, with explicit conf
 |---|---|---|---|
 | airfleets.net | 0.80 | Primary | Weekly per tail |
 | Planespotters fleet pages | 0.75 | Secondary | Weekly per tail |
+| OpenSky Network metadata (`/api/metadata/aircraft/icao/{icao24}`) | 0.70 | Per-tail cross-check | Per-tail on slice run |
+| Wikipedia airline fleet articles | 0.65 | Type-level cross-check | Daily per airline (cached) |
 | Airline press releases (tail-specific facts) | 1.00 | Confirmatory (when available) | Event-driven |
 | Manual review (Yumo) | 0.95 | Tie-break | Triggered by REVIEW_REQUIRED queue |
+
+**Why Wikipedia ranks below OpenSky at 0.65**: Wikipedia airline-fleet articles list aircraft at the *type* level only (e.g. "Air Canada operates 42 A220-300s with 12J/125Y"), not per-tail. Observations emitted by the `wikipedia_fleet` collector are type-level confirmations attached to seed-CSV tails by aircraft_type match: "per Wikipedia, this airline operates this type." That is a weaker signal than OpenSky's per-icao24 metadata for three reasons: it is community-edited rather than a declarative airline source; it has no per-tail granularity; and tail-level changes (sub-fleet transfers, retirements) typically lag the airline's actual fleet by weeks-to-months. Wikipedia stays in the source mix because it is genuinely ToS-clean (CC-BY-SA-4.0 article text, no anti-bot blocks) and surfaces type-vs-airline contradictions cheaply. It is not a substitute for the eventual airfleets/Planespotters per-tail collectors.
 
 **Why press releases score 1.00**: Tail-level facts in airline communications are declarative commitments. When AC announces "C-FBOM was the first A220 retrofitted under the new program," the airline is on the record about a specific aircraft's status. That is qualitatively different from third-party scraping (airfleets, Planespotters), which interprets and re-publishes airline-supplied data through its own editorial layer. Press observations naming a specific tail are treated as ground truth and override conflicting third-party reports without going through the REVIEW_REQUIRED flow. (Manual review by Yumo stays at 0.95: a human can still misread a source.)
 

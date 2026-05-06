@@ -15,7 +15,7 @@ The project answers questions that public fleet pages typically don't:
 
 ## Status
 
-Active development. The repository contains the data model, schema, full test suite (61 tests), a working OpenSky live-flight collector with OAuth authentication, and `notebooks/01-fleet-overview.ipynb` — a fleet composition + data-quality-audit notebook over real OpenSky data. Additional collectors (Planespotters photos, airfleets ownership, AeroLOPA seat maps, airline press) are stubbed for Phase 4 with their interfaces defined. The Astro dashboard lives in `site/` and is also Phase 4 work.
+Active development. The repository contains the data model, schema, full test suite (88 tests), a working OpenSky live-flight collector with OAuth authentication, a working Wikipedia airline-fleet collector (type-level cross-check), and `notebooks/01-fleet-overview.ipynb` — a fleet composition + data-quality-audit notebook with two ToS-clean ownership sources writing into the observations table. Remaining collectors (Planespotters photos, airfleets ownership, AeroLOPA seat maps, airline press) are stubbed for Phase 4 with their interfaces defined. The Astro dashboard lives in `site/` and is also Phase 4 work.
 
 ## Stack
 
