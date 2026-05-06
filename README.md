@@ -35,7 +35,7 @@ data/cache/flights/       24h fetch cache (gitignored)
 docs/                     Research, design, plan, methodology
 docs/img/                 Charts rendered from notebooks/
 tests/                    Pytest suite
-notebooks/                Jupyter analysis (01 populated; 02-03 Phase 4)
+notebooks/                Jupyter analysis (01-02 populated; 03 Phase 4)
 site/                     Astro dashboard (Phase 4)
 ```
 
@@ -84,17 +84,22 @@ The single null `estArrivalAirport` is a structural OpenSky pattern at smaller a
 
 ## What it looks like
 
-`notebooks/01-fleet-overview.ipynb` runs three passes over the seed roster + cached flight data: composition, a seed-vs-OpenSky data-quality audit, and recent activity. One chart from it:
+Two notebooks render real OpenSky data inline on GitHub.
+
+**`notebooks/01-fleet-overview.ipynb`** — composition, data-quality audit (seed CSV vs OpenSky metadata), MSN-mismatch investigation, recent activity per tail, and the ownership-ingestion path that activates the observation-table surface DESIGN §2 promised. The audit catches a real bug: the seed listed N301DU as an A321-200, OpenSky says it's an A220.
 
 ![Recent activity per tail — 48 hour OpenSky pull](docs/img/recent-activity.png)
 
-The notebook also surfaces what the audit found — 7 of 13 seed tails verifiable against OpenSky's metadata, 5 MSN mismatches and 2 type discrepancies (e.g., the seed listed N301DU as an A321-200; OpenSky says it's an A220-100). Open the notebook on GitHub to see the rendered cell outputs without running anything locally.
+**`notebooks/02-route-density.ipynb`** — pivots cached flight data into route segments, charts the top routes, and renders a rough great-circle map (an exploratory equirectangular version; the production Winkel-tripel SVG renderer per DESIGN §5 lands in Phase 4).
+
+![Routes captured in the 48-hour window](docs/img/route-map.png)
 
 To re-run:
 
 ```bash
 uv sync --group notebook
 uv run jupyter nbconvert --to notebook --execute --inplace notebooks/01-fleet-overview.ipynb
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/02-route-density.ipynb
 ```
 
 ## Contributing
