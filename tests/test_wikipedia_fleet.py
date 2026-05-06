@@ -21,8 +21,8 @@ from fleet_tracker.collectors.wikipedia_fleet import (
     normalize_aircraft_type,
     parse_current_fleet,
 )
-from fleet_tracker.ingest import write_ownership_observation
-from fleet_tracker.model import FleetTrackerSource, OwnershipSignal
+from fleet_tracker.ingest import write_fleet_membership_observation
+from fleet_tracker.model import FleetTrackerSource
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -255,15 +255,16 @@ def test_page_url_returns_known_airline():
 
 
 # ---------------------------------------------------------------------------
-# End-to-end: parse + write_ownership_observation hits DuckDB
+# End-to-end: parse + write_fleet_membership_observation hits DuckDB
 # ---------------------------------------------------------------------------
 
-def test_end_to_end_emits_ownership_observations(tmp_path, ac_rows):
-    """Wire: Wikipedia fixture → seed-tail match → write_ownership_observation.
+def test_end_to_end_emits_fleet_membership_observations(tmp_path, ac_rows):
+    """Wire: Wikipedia fixture → seed-tail match → write_fleet_membership_observation.
 
-    Demonstrates the two-source pattern from DESIGN §2: the same observations
-    table accepts WIKIPEDIA_FLEET rows alongside OPENSKY_LIVE rows. This is
-    the path the notebook 01 cell will exercise.
+    Wikipedia is a type-level signal (DESIGN §6): the source URL confirms
+    "Air Canada operates A220-300" at the page level but does not name
+    C-FBOM or C-GROV. Rows are written with signal_kind='fleet_membership',
+    not 'ownership' — the audit trail must keep these distinct.
     """
     conn = db.connect(tmp_path / "fleet.duckdb")
     db.init_schema(conn)
@@ -279,29 +280,64 @@ def test_end_to_end_emits_ownership_observations(tmp_path, ac_rows):
         matches = find_rows_for_type(ac_rows, ac_type)
         if not matches:
             continue
-        obs_id = write_ownership_observation(
+        obs_id = write_fleet_membership_observation(
             conn,
             tail_number=tail,
-            owner_entity="Air Canada",
-            signal=OwnershipSignal.OWNED,
+            airline="Air Canada",
+            aircraft_type=matches[0].aircraft_type,
             source=FleetTrackerSource.WIKIPEDIA_FLEET,
             source_url=source_url,
             confidence=0.65,
             observed_at=datetime(2026, 5, 6, 0, 0, tzinfo=timezone.utc),
-            notes=f"Wikipedia type-level: {matches[0].aircraft_type}",
         )
         written.append(obs_id)
 
     assert len(written) == 2
     rows = conn.sql(
-        "SELECT tail_number, source, signal_kind, confidence, notes "
+        "SELECT tail_number, source, signal_kind, signal_value, "
+        "       confidence, source_url, notes "
         "FROM observations ORDER BY tail_number"
     ).fetchall()
     assert len(rows) == 2
-    for tail_number, source, kind, conf, notes in rows:
+    for tail_number, source, kind, value, conf, url, notes in rows:
         assert source == "wikipedia_fleet"
-        assert kind == "ownership"
+        assert kind == "fleet_membership"
+        assert value == "Airbus A220-300"  # the confirmed aircraft_type
         assert conf == pytest.approx(0.65)
-        assert "owner_entity=Air Canada" in notes
-        assert "Wikipedia type-level: Airbus A220-300" in notes
+        assert url == source_url
+        assert "airline=Air Canada" in notes
+        assert "matched by aircraft_type" in notes
+    conn.close()
+
+
+def test_wikipedia_observations_never_use_ownership_kind(tmp_path, ac_rows):
+    """Schema invariant guard: Wikipedia rows must NOT carry signal_kind='ownership'.
+
+    Per DESIGN §2 and §6, Wikipedia is type-level evidence — `fleet_membership`,
+    not `ownership`. A regression that routed Wikipedia through
+    write_ownership_observation would technically meet the source_url contract
+    while semantically weakening it (the URL doesn't mention the tail). This
+    test pins the distinction so a future refactor can't quietly collapse it.
+    """
+    conn = db.connect(tmp_path / "fleet.duckdb")
+    db.init_schema(conn)
+    write_fleet_membership_observation(
+        conn,
+        tail_number="C-FBOM",
+        airline="Air Canada",
+        aircraft_type="Airbus A220-300",
+        source=FleetTrackerSource.WIKIPEDIA_FLEET,
+        source_url=wikipedia_fleet.page_url("ac"),
+        confidence=0.65,
+    )
+    n_ownership = conn.sql(
+        "SELECT COUNT(*) FROM observations "
+        "WHERE source = 'wikipedia_fleet' AND signal_kind = 'ownership'"
+    ).fetchone()[0]
+    n_fleet_membership = conn.sql(
+        "SELECT COUNT(*) FROM observations "
+        "WHERE source = 'wikipedia_fleet' AND signal_kind = 'fleet_membership'"
+    ).fetchone()[0]
+    assert n_ownership == 0
+    assert n_fleet_membership == 1
     conn.close()

@@ -87,12 +87,12 @@ Two-source consensus with manual tie-break, recency-weighted, with explicit conf
 |---|---|---|---|
 | airfleets.net | 0.80 | Primary | Weekly per tail |
 | Planespotters fleet pages | 0.75 | Secondary | Weekly per tail |
-| OpenSky Network metadata (`/api/metadata/aircraft/icao/{icao24}`) | 0.70 | Per-tail cross-check | Per-tail on slice run |
-| Wikipedia airline fleet articles | 0.65 | Type-level cross-check | Daily per airline (cached) |
+| OpenSky Network metadata (`/api/metadata/aircraft/icao/{icao24}`) | 0.70 | Per-tail ownership signal (`signal_kind='ownership'`) | Per-tail on slice run |
+| Wikipedia airline fleet articles | 0.65 | Type-level operator confirmation (`signal_kind='fleet_membership'`) — does NOT stand alone as per-tail ownership | Daily per airline (cached) |
 | Airline press releases (tail-specific facts) | 1.00 | Confirmatory (when available) | Event-driven |
 | Manual review (Yumo) | 0.95 | Tie-break | Triggered by REVIEW_REQUIRED queue |
 
-**Why Wikipedia ranks below OpenSky at 0.65**: Wikipedia airline-fleet articles list aircraft at the *type* level only (e.g. "Air Canada operates 42 A220-300s with 12J/125Y"), not per-tail. Observations emitted by the `wikipedia_fleet` collector are type-level confirmations attached to seed-CSV tails by aircraft_type match: "per Wikipedia, this airline operates this type." That is a weaker signal than OpenSky's per-icao24 metadata for three reasons: it is community-edited rather than a declarative airline source; it has no per-tail granularity; and tail-level changes (sub-fleet transfers, retirements) typically lag the airline's actual fleet by weeks-to-months. Wikipedia stays in the source mix because it is genuinely ToS-clean (CC-BY-SA-4.0 article text, no anti-bot blocks) and surfaces type-vs-airline contradictions cheaply. It is not a substitute for the eventual airfleets/Planespotters per-tail collectors.
+**Why Wikipedia is in a different signal kind, not just a lower-confidence ownership source**: Wikipedia airline-fleet articles list aircraft at the *type* level only (e.g. "Air Canada operates 42 A220-300s with 12J/125Y"), not per-tail. The `wikipedia_fleet` collector emits `signal_kind='fleet_membership'` rows (see §6), not `signal_kind='ownership'` rows: the source URL confirms operator-operates-type at the page level, but contains no information about any specific tail. Treating these as ownership rows with a lower confidence would technically meet the schema's "every observation links to a source URL" promise while semantically weakening it — a reviewer following the URL would not find the tail mentioned. Carving out a distinct signal kind makes the audit trail honest: a downstream query asking "what's the current ownership signal for this tail?" filters on `signal_kind='ownership'` and never picks up the type-level Wikipedia rows. The 0.65 confidence reflects "Wikipedia confirms this airline operates this type" with reasonable accuracy; it is not a per-tail confidence. Wikipedia stays in the source mix because it is genuinely ToS-clean (CC-BY-SA-4.0, no anti-bot blocks) and surfaces airline-vs-type contradictions cheaply — but it is not a substitute for the eventual airfleets/Planespotters per-tail collectors.
 
 **Why press releases score 1.00**: Tail-level facts in airline communications are declarative commitments. When AC announces "C-FBOM was the first A220 retrofitted under the new program," the airline is on the record about a specific aircraft's status. That is qualitatively different from third-party scraping (airfleets, Planespotters), which interprets and re-publishes airline-supplied data through its own editorial layer. Press observations naming a specific tail are treated as ground truth and override conflicting third-party reports without going through the REVIEW_REQUIRED flow. (Manual review by Yumo stays at 0.95: a human can still misread a source.)
 
@@ -512,8 +512,8 @@ CREATE TABLE observations (
     observed_at     TIMESTAMP NOT NULL,
     source          TEXT NOT NULL,                  -- FleetTrackerSource value
     source_url      TEXT NOT NULL,
-    signal_kind     TEXT NOT NULL,                  -- 'cabin' | 'ownership' | 'lifecycle' | 'flight'
-    signal_value    TEXT NOT NULL,                  -- e.g. 'owned', 'in_service', 'retrofit'
+    signal_kind     TEXT NOT NULL,                  -- 'cabin' | 'ownership' | 'lifecycle' | 'flight' | 'fleet_membership'
+    signal_value    TEXT NOT NULL,                  -- e.g. 'owned', 'in_service', 'retrofit', or aircraft_type for fleet_membership
     confidence      DOUBLE NOT NULL CHECK (confidence BETWEEN 0 AND 1),
     notes           TEXT
 );
@@ -522,6 +522,10 @@ CREATE INDEX idx_obs_kind_time ON observations (signal_kind, observed_at DESC);
 ```
 
 `signal_kind` plus `signal_value` lets one table carry observations from every domain (cabin, ownership, lifecycle, flight events) without joins. The retrofit module reads only `signal_kind = 'cabin'` rows after conversion.
+
+**`fleet_membership` semantics**: this signal kind is for *type-level* evidence — a source confirms an operator flies a given aircraft type, but does not name a specific tail. Wikipedia's per-airline fleet articles are the canonical case: they list "Air Canada operates 42 A220-300s" without naming any tails. A `fleet_membership` row attaches to a specific tail by aircraft_type match in the reference CSV; the `source_url` points to the page that confirmed the type-level claim, not to a page mentioning the tail. `signal_value` carries the confirmed `aircraft_type` (e.g. `"Airbus A220-300"`), and the operator is stitched into `notes` (`airline=Air Canada; ...`).
+
+This is a deliberately weaker signal than `ownership`, which requires a per-tail source. `fleet_membership` is useful as a sanity check (does this tail's airline+type combination appear in any public fleet listing?) but cannot stand alone as ownership evidence. The downstream `ownership_history` projection ignores `fleet_membership` rows entirely; only `ownership`-kind rows feed it. The two kinds remain distinct in the table so a downstream query asking "what's the current ownership signal for this tail?" filters cleanly on `signal_kind = 'ownership'` and never sees the type-level Wikipedia rows.
 
 ### `media`
 
