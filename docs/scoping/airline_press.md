@@ -119,6 +119,26 @@ distributor AC pays. ToS-clean for read access; rate-limit politely
 `source_url` pointing to the Cision page so attribution is in the
 observation row.
 
+### Cision dependency fragility
+Cision is a workaround, not a primary source. Three things follow:
+
+- **Cision is the discovery surface, AC's own newsroom is the canonical
+  source.** If a future Akamai-bypass or AC API change unblocks the
+  direct newsroom, the AC collector should switch over and treat
+  Cision as a fallback.
+- **The collector records the canonical AC URL alongside the Cision URL
+  it actually fetched from.** A Cision release page links back to
+  `aircanada.com/media/...`; capture both, store the AC URL as the
+  authoritative `source_url` and the Cision URL as `fetched_from` (or
+  similar). This means a future migration off Cision doesn't break the
+  link to the original release.
+- **Monthly tripwire on Cision liveness.** A check that
+  `newswire.ca/news/air-canada/` has at least one release dated within
+  the last 60 days. If it doesn't — AC moved PR distributors, Cision
+  changed URL structure, or the index template broke — the alert fires
+  loudly so we know to investigate. Silent breakage on a third-party
+  mirror is the failure mode this guards against.
+
 ## Shared parser shape
 
 Both carriers converge on the same per-release extraction:
@@ -156,10 +176,20 @@ carrier; the parser is shared.
    captured AC releases as fixtures (one cabin-related, one routine like
    the beer-and-wine release that's already verified extractable).
 
-3. **Defer:** retrofit-timeline extraction (the "starts September 2026"
-   parsing). The v1 collector emits `retrofit_announcement` observations
-   pointing at the release; the timeline extraction is a v1.5 problem
-   once retrofit.py is wired to read these signals.
+3. **Hard scope boundary on body-text extraction.** v1 of the collector
+   captures **announcement existence**: date, headline, URL, JSON-LD
+   metadata, and the full body as opaque text stored alongside the
+   observation. v1 does **not** parse retrofit semantics from the body —
+   no extraction of "starts September 2026", "42 aircraft affected",
+   cabin-class breakdowns, or aircraft-type-to-timeline mapping. The
+   retrofit module consumes announcement existence as a weak signal
+   only ("AC announced a cabin program; flag any A330-300 in the seed
+   as potentially-IN_PROGRESS until tail-level evidence resolves it").
+   v1.5 picks one of LLM-driven extraction or per-carrier curation —
+   that choice is **deferred with a tripwire**: revisit when
+   `retrofit.py` actually needs `install_rate` numerics, not before.
+   This boundary is load-bearing for keeping the v1 collector small;
+   "out of scope" by itself is too soft and invites scope creep.
 
 The two-PR split mirrors the OpenSky → Wikipedia order ([PRs #2-#6](https://github.com/yumorepos/fleet-tracker/pulls?q=is%3Apr)):
 prove the shared shape on the cleaner source first, then adapt to the
