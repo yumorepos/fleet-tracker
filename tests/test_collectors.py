@@ -301,9 +301,11 @@ def test_http_fetch_returns_empty_on_404(monkeypatch):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("module_name", [
-    "adsb_exchange", "planespotters", "airfleets", "seatmap", "airline_press",
+    "adsb_exchange", "planespotters", "airfleets", "seatmap",
 ])
 def test_collector_stub_raises_not_implemented(module_name):
+    """airline_press graduated out of this list when the DL collector landed
+    (see tests/test_airline_press.py); the rest are still stubbed."""
     import importlib
     mod = importlib.import_module(f"fleet_tracker.collectors.{module_name}")
     with pytest.raises(NotImplementedError, match="Phase 4"):
