@@ -1,0 +1,70 @@
+{
+  "purpose": "Per-tail OpenSky flight fixtures for notebook 01 Pass 3. Each file is the raw OpenSky /flights/aircraft response captured for one tail, used as a fallback when data/cache/flights/ is empty so the notebook renders end-to-end on a clean clone. Live mode (the cache populated by `python -m fleet_tracker.collectors.opensky --tail X --hours 48`) is the default; fixtures are only consulted when no cache files exist.",
+  "license_note": "OpenSky Network public flight data; used per their ToS for research/portfolio purposes. Each request used the FleetTrackerBot User-Agent and OAuth client-credentials auth.",
+  "captured_at_utc": "2026-05-07T18:47:35+00:00",
+  "tails": {
+    "C-GROV": {
+      "airline": "AC",
+      "icao24": "c0730e",
+      "n_flights": 3,
+      "captured_window_first_seen_utc": "2026-05-05T17:36:08+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T19:23:54+00:00"
+    },
+    "C-FNOG": {
+      "airline": "AC",
+      "icao24": "c023c7",
+      "n_flights": 3,
+      "captured_window_first_seen_utc": "2026-05-05T00:28:44+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T17:50:52+00:00"
+    },
+    "C-FIVK": {
+      "airline": "AC",
+      "icao24": "c0174d",
+      "n_flights": 4,
+      "captured_window_first_seen_utc": "2026-05-05T01:18:50+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T21:00:20+00:00"
+    },
+    "C-GFAH": {
+      "airline": "AC",
+      "icao24": "c051e4",
+      "n_flights": 5,
+      "captured_window_first_seen_utc": "2026-05-05T08:36:38+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T22:41:42+00:00"
+    },
+    "C-FRTW": {
+      "airline": "AC",
+      "icao24": "c02ee9",
+      "n_flights": 2,
+      "captured_window_first_seen_utc": "2026-05-05T21:56:52+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T21:08:06+00:00"
+    },
+    "N501DN": {
+      "airline": "DL",
+      "icao24": "a63dff",
+      "n_flights": 2,
+      "captured_window_first_seen_utc": "2026-05-05T07:37:56+00:00",
+      "captured_window_last_seen_utc": "2026-05-05T17:56:37+00:00"
+    },
+    "N512DN": {
+      "airline": "DL",
+      "icao24": "a66935",
+      "n_flights": 2,
+      "captured_window_first_seen_utc": "2026-05-05T17:25:37+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T20:19:35+00:00"
+    },
+    "N301DU": {
+      "airline": "DL",
+      "icao24": "a32367",
+      "n_flights": 9,
+      "captured_window_first_seen_utc": "2026-05-05T04:06:25+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T23:13:10+00:00"
+    },
+    "N802NW": {
+      "airline": "DL",
+      "icao24": "aaea8c",
+      "n_flights": 3,
+      "captured_window_first_seen_utc": "2026-05-05T00:28:52+00:00",
+      "captured_window_last_seen_utc": "2026-05-06T08:14:39+00:00"
+    }
+  }
+}

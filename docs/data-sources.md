@@ -31,6 +31,10 @@ For the broader landscape research that produced these decisions, see [docs/RESE
 
 The collector (`src/fleet_tracker/collectors/opensky.py`) caches each per-tail response for 24 hours by filename date; see [DESIGN §1](DESIGN.md) for the cache governance rules.
 
+### Per-tail flight fixtures (notebook 01 Pass 3 fallback)
+
+`tests/fixtures/opensky_flights/` contains one captured `/flights/aircraft` response per seed tail with a known icao24 (5 AC, 4 DL). Notebook 01 Pass 3 reads from these only when `data/cache/flights/` is empty so the notebook renders end-to-end on a fresh clone without requiring credentials. Live mode (cache populated by the slice CLI) is the default whenever the cache exists. Each tail was captured in its own 48h window — see `tests/fixtures/opensky_flights/manifest.json` for per-tail capture timestamps; refresh by re-running the slice for the affected tails and copying the resulting cache files in.
+
 ## icao24 lookups (manual in v1, automated in v1.5)
 
 OpenSky's `/flights/aircraft` requires the 24-bit transponder address (e.g. `c01040`), not the registration (`C-FBOM`). v1 ships with `icao24=todo_lookup` placeholders in `data/reference/{airline}-mainline.csv`; the slice CLI accepts `--icao24 <hex>` directly to bypass the CSV lookup.
