@@ -68,3 +68,23 @@ Sources:
 - https://transtats.bts.gov/PREZIP/
 - https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time
 - https://pypi.org/project/airportsdata/20261103/
+
+
+## Independently reproduced aircraft pairs and delay-association counts
+
+**Verification complete (2026-11-11):** [GitHub Actions run #43092083056](https://github.com/yumorepos/fleet-tracker/actions/runs/43092083056) passed **27 offline tests**, the original independent SQLite flight-level KPI reconciliation, the primary tail-sequence audit, and a **separate actual-source SQLite window-function verifier**.
+
+This independent implementation does NOT call the original tail-pair matching function. It reconstructs gate arrival UTC from observed departure UTC **plus ActualElapsedTime**, cross-checks ArrDelay and destination local clock, sorts same-tail records using SQL `LEAD` within each calendar month, and independently produces candidate-pair counts and all four late-inbound/next-departure quadrants. The verifier fails closed if any original counts, source ZIP hashes, clock exclusions, pair classifications, per-gap-band rates, or medians differ.
+
+| Independently matched count | January 2025 | July 2025 |
+|---|---:|---:|
+| Valid reconstructed gate records | 74,022 | 92,245 |
+| Same-airport candidate connections, 20–360 minutes | 53,047 | 71,881 |
+| Candidate pairs with late inbound arrival | 9,845 | 15,991 |
+| Next departure late among late-inbound pairs | 6,560 | 10,961 |
+| Candidate pairs without late inbound arrival | 43,202 | 55,890 |
+| Next departure late among not-late-inbound pairs | 4,506 | 8,215 |
+
+All counts matched the primary implementation exactly for both months. Source ZIP checksums also matched the first BTS data-quality pilot. Only aggregate JSON was retained from the workflow; no individual flight/tail records were committed.
+
+**Interpretation remains bounded:** this is independent arithmetic and pairing validation, NOT independent observation of complete Delta aircraft itineraries, evidence of causal delay transfer, or a validated ability to predict disruption. Descriptive correlations remain susceptible to common conditions, aircraft reassignment, and the actual-ground-gap selection.

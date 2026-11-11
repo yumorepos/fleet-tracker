@@ -2,12 +2,6 @@
 name: BTS Delta 2025 quality pilot
 on:
   workflow_dispatch:
-  push:
-    branches: [research/delta-bts-2025-pilot]
-    paths:
-      - 'src/fleet_tracker/bts_tail_sql_verify.py'
-      - 'tests/test_bts_tail_sql_verify.py'
-      - '.github/workflows/bts-delta-pilot.yml'
 permissions:
   contents: read
 jobs:
