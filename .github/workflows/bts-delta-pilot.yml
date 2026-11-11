@@ -1,18 +1,7 @@
-# Temporary, branch-scoped data-quality audit; no cron or production ingestion.
+# Manual-only research verification; no schedule or automatic data downloads.
 name: BTS Delta 2025 quality pilot
 on:
-  push:
-    branches: [research/delta-bts-2025-pilot]
-    paths:
-      - src/fleet_tracker/bts_delta_pilot.py
-      - src/fleet_tracker/bts_delta_sql_verify.py
-      - src/fleet_tracker/bts_tail_sequence.py
-      - tests/test_bts_delta_pilot.py
-      - tests/test_bts_delta_sql_verify.py
-      - tests/test_bts_tail_sequence.py
-      - docs/BTS_DELTA_PILOT_2025.md
-      - docs/BTS_TAIL_SEQUENCE_FEASIBILITY_2025.md
-      - .github/workflows/bts-delta-pilot.yml
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
