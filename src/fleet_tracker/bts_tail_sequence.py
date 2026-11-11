@@ -193,6 +193,20 @@ def evaluate(path,month,zones):
             and pairs["same_tail_overlap"]/comparable<=.005 else "REVISE",
     }
 
+def apply_2025_airport_zone_aliases(reference_zones: dict) -> dict:
+    """One source-backed historical-code correction; not a general IATA remapper.
+
+    BTS 2025 uses PBI (West Palm Beach). The airport's own notice describes
+    its 2026 change to DJT; FAA/AirNav confirms Eastern time at this site.
+    Only used for this frozen 2025 Jan/Jul research scope.
+    """
+    zones = dict(reference_zones)
+    if zones.get("PBI") not in (None, "America/New_York"):
+        raise ValueError("Conflicting PBI historical zone: independent audit needed")
+    zones["PBI"] = "America/New_York"
+    return zones
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--january",type=Path,required=True)
@@ -201,7 +215,9 @@ def main(argv=None):
     p.add_argument("--output",type=Path,required=True)
     args=p.parse_args(argv)
     import airportsdata
-    zones={k:v["tz"] for k,v in airportsdata.load("IATA").items() if v.get("tz")}
+    zones=apply_2025_airport_zone_aliases(
+        {k:v["tz"] for k,v in airportsdata.load("IATA").items() if v.get("tz")}
+    )
     prior=json.loads(args.prior_report.read_text())
     months=[evaluate(args.january,1,zones),evaluate(args.july,7,zones)]
     for m in months:

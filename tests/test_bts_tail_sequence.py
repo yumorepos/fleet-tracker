@@ -67,3 +67,18 @@ def test_no_inferred_activity_from_single_observation():
     d=datetime(2025,1,2,6,tzinfo=timezone.utc)
     s=count_pairs([Leg("N1","SEA","JFK",d,d+timedelta(hours=2))])
     assert s["observed_consecutive_pairs"]==0 and s["unique_valid_tails"]==1
+
+def test_historical_pbi_time_zone_code_drift_is_corrected():
+    from fleet_tracker.bts_tail_sequence import apply_2025_airport_zone_aliases
+    zones=apply_2025_airport_zone_aliases(Z)
+    assert zones["PBI"]=="America/New_York"
+    leg,reason=timestamped(flight(Origin="PBI",Dest="ATL",
+        CRSDepTime="0800",CRSArrTime="1000",CRSElapsedTime="120",
+        DepTime="0800",ArrTime="1000",ActualElapsedTime="120"),zones)
+    assert reason=="valid" and leg.origin=="PBI"
+
+def test_conflicting_historical_pbi_mapping_must_fail():
+    from fleet_tracker.bts_tail_sequence import apply_2025_airport_zone_aliases
+    import pytest
+    with pytest.raises(ValueError,match="Conflicting PBI"):
+        apply_2025_airport_zone_aliases({"PBI":"America/Chicago"})

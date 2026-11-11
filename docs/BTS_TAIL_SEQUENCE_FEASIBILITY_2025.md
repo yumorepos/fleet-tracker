@@ -70,3 +70,25 @@ Sources:
 - https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time
 - https://transtats.bts.gov/PREZIP/
 - https://pypi.org/project/airportsdata/20261103/
+
+## Specific historical airport identifier correction
+
+The first real-data run showed 1,200 January and 1,163 July completed
+flights with PBI excluded because the current-version IATA timezone
+reference no longer supplies that historic key. The airport's official
+July 9, 2026 notice confirms a rename from Palm Beach International
+Airport to President Donald J. Trump International Airport and says
+the IATA code would change from PBI to DJT on August 18, 2026.
+Our 2025 reporting dates precede that change. Independent FAA and
+airport data locate West Palm Beach, Florida in the Eastern zone.
+A **single 2025-only PBI=America/New_York time-zone exception** is
+therefore warranted. It does not change any BTS airport IDs or
+flight records, or enable arbitrary current-to-historical airport joins.
+If an existing PBI timezone disagrees, the pipeline stops instead
+of overwriting it. The result is revalidated against the source's
+actual and scheduled gate clocks and elapsed minutes.
+
+Evidence:
+- https://www.pbia.org/articles/post/president-donald-j-trump-international-airport-name-change-takes-effect/
+- https://www.faa.gov/air_traffic/publications/atpubs/aip_html/part3_ad_2.0_florida.html
+- https://www.airnav.com/airport/PBI
