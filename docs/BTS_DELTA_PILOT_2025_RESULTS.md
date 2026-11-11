@@ -31,3 +31,10 @@ Official data: [BTS Reporting Carrier On-Time Performance](https://transtats.bts
 **Limitations:** July's descriptive arrival rate is 5.52 percentage points below January, but the traffic/route/schedule mix differs; **no causal or weather/seasonal effect is identified**. Complete nonblank tail fields in two months do not prove tail continuity, actual daily utilization, maintenance, delay propagation or valid turnarounds. U.S. domestic reporting rules exclude international/transborder segments and do not certify complete Delta-marketed network coverage.
 
 **Next gated task:** Independent calculation with SQL or a separate implementation; source flight-grain/codeshare semantics review; cross-midnight gate-time and tail continuity assessment. Freeze the source snapshot and do not add a UI or merge this exploratory PR until reviewed.
+## Independent SQL validation — completed November 11, 2026
+
+A separate [SQLite audit workflow](https://github.com/yumorepos/fleet-tracker/actions/runs/43082988191) re-read the same official two ZIPs, normalized binary flags independently with Decimal, and recomputed the eligible flight denominators and status counts in SQL. **PASS:** 12 count metrics per month exactly match the primary Python analysis, source SHA-256 hashes match, and no duplicate-key disagreements were detected.
+
+The verified DL scheduled counts remained **76,306** (January) and **94,066** (July). The independent audit's offline suite passed **8/8 tests**. This verifies a deliberately narrow set of arithmetic/data-contract measures, not BTS-published airline score parity, countrywide operational coverage, tail sequence validity, or causal conclusions.
+
+The temporary branch-only Actions workflow should be retired or converted to non-scheduled reproducibility guidance before any merge. The PR remains draft and unmerged.
