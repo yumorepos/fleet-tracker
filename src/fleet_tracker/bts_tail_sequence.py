@@ -54,6 +54,8 @@ class Leg:
     dest:str
     dep:datetime
     arr:datetime
+    dep_delay:float=0.0
+    arr_delay:float=0.0
 
 def timestamped(row,zones):
     tail=(row.get("Tail_Number") or "").strip().upper()
@@ -97,7 +99,7 @@ def timestamped(row,zones):
         return None,"actual_arrival_local_clock_mismatch"
     if (arr-dep).total_seconds()<=0 or abs((arr-dep).total_seconds()/60-actualminutes)>1:
         return None,"elapsed_minutes_mismatch"
-    return Leg(tail,origin,dest,dep,arr),"valid"
+    return Leg(tail,origin,dest,dep,arr,depdelay,arrdelay),"valid"
 
 def count_pairs(legs):
     grouped=defaultdict(list)
@@ -121,6 +123,17 @@ def count_pairs(legs):
             elif gap<=360:
                 c["candidate_20_to_360_min"]+=1
                 gaps.append(gap)
+                # Descriptive exposure/outcome association within selected
+                # matching-tail observations only. This is NOT causal.
+                group="late_inbound" if old.arr_delay>=15 else "not_late_inbound"
+                c["candidates_"+group]+=1
+                if new.dep_delay>=15:
+                    c["next_departure_late_"+group]+=1
+                band=("20_to_59" if gap<60 else
+                      "60_to_119" if gap<120 else "120_to_360")
+                c["candidates_"+band+"_"+group]+=1
+                if new.dep_delay>=15:
+                    c["next_late_"+band+"_"+group]+=1
             elif gap<=1440:
                 c["gap_6_to_24h"]+=1
             else:
@@ -128,6 +141,30 @@ def count_pairs(legs):
     result={k:c[k] for k in ("observed_consecutive_pairs","airport_discontinuities",
             "airport_continuity","same_tail_overlap","gap_under_20_min",
             "candidate_20_to_360_min","gap_6_to_24h","gap_over_24h")}
+    late=c["candidates_late_inbound"]
+    early=c["candidates_not_late_inbound"]
+    assert late+early==result["candidate_20_to_360_min"]
+    def rate(n,d):
+        return round(n/d,6) if d else None
+    association={
+        "previous_arrival_late_15":late,
+        "previous_arrival_not_late_15":early,
+        "next_departure_late_after_late_arrival":c["next_departure_late_late_inbound"],
+        "next_departure_late_after_not_late_arrival":c["next_departure_late_not_late_inbound"],
+        "next_late_rate_after_late_arrival":rate(c["next_departure_late_late_inbound"],late),
+        "next_late_rate_after_not_late_arrival":rate(c["next_departure_late_not_late_inbound"],early),
+        "actual_ground_gap_bands":{
+            band:{
+                group:{
+                    "candidate_connections":c["candidates_"+band+"_"+group],
+                    "next_departure_late":c["next_late_"+band+"_"+group],
+                    "rate":rate(c["next_late_"+band+"_"+group],
+                                c["candidates_"+band+"_"+group])
+                } for group in ("late_inbound","not_late_inbound")
+            } for band in ("20_to_59","60_to_119","120_to_360")
+        },
+    }
+    result["descriptive_delay_association"]=association
     result["unique_valid_tails"]=len(grouped)
     result["tails_with_2plus_valid_legs"]=sum(len(x)>=2 for x in grouped.values())
     result["candidate_median_ground_minutes"]=round(median(gaps),1) if gaps else None
@@ -233,6 +270,7 @@ def main(argv=None):
         "clock_validation":"Compare scheduled and actual gate clocks and actual elapsed minutes to UTC reconstruction",
         "candidate_definition":"Consecutive observed same tail, matching airport, 20-360 min nonoverlapping gate gap",
         "limits":"No full fleet utilization, certified turnarounds, causal propagation or unreported leg recovery",
+        "delay_association_note":"P(next departure delay>=15 | prior observed arrival delay>=15) vs prior <15, selected 20-360min candidate pairs; noncausal and subject to selection, airport, weather, routing, schedule confounding",
         "months":months,
     }
     args.output.parent.mkdir(parents=True,exist_ok=True)

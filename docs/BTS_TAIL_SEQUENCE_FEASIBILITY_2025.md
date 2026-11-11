@@ -92,3 +92,19 @@ Evidence:
 - https://www.pbia.org/articles/post/president-donald-j-trump-international-airport-name-change-takes-effect/
 - https://www.faa.gov/air_traffic/publications/atpubs/aip_html/part3_ad_2.0_florida.html
 - https://www.airnav.com/airport/PBI
+
+## Second-pass descriptive delay association (conditional on connection feasibility)
+
+Only after the clock/tail gates pass, compare whether the *next observed
+departure* is at least 15 minutes delayed across the sample of candidate
+20-360-minute same-tail same-airport connections. Two exposure groups:
+the prior observed arrival was >=15 minutes late or <15 minutes late.
+Report four exact counts and conditional rates, and stratify by
+actual gate ground gap of 20-59, 60-119, and 120-360 minutes.
+
+These actual-gap strata are selected using realized outcomes and may
+create additional selection bias. The exposure and outcome share weather,
+airport, network, scheduled time, reporting coverage and aircraft
+assignment confounders. No causal attribution or counterfactual delay
+savings can be inferred. The analysis is intended to demonstrate cautious
+operational KPI communication, not flight-by-flight prediction.

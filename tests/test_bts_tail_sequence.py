@@ -82,3 +82,29 @@ def test_conflicting_historical_pbi_mapping_must_fail():
     import pytest
     with pytest.raises(ValueError,match="Conflicting PBI"):
         apply_2025_airport_zone_aliases({"PBI":"America/Chicago"})
+
+def test_delay_association_counts_only_valid_candidate_pairs():
+    d=datetime(2025,1,5,12,tzinfo=timezone.utc)
+    # Two separate tails avoid accidental cross-tail linking.
+    old_late=Leg("N1","ATL","JFK",d,d+timedelta(minutes=90),0,25)
+    next_late=Leg("N1","JFK","ATL",d+timedelta(minutes=140),d+timedelta(minutes=220),20,0)
+    old_early=Leg("N2","ATL","JFK",d,d+timedelta(minutes=90),0,0)
+    next_early=Leg("N2","JFK","ATL",d+timedelta(minutes=160),d+timedelta(minutes=250),5,0)
+    result=count_pairs([old_late,next_late,old_early,next_early])
+    assoc=result["descriptive_delay_association"]
+    assert result["candidate_20_to_360_min"]==2
+    assert assoc["previous_arrival_late_15"]==1
+    assert assoc["previous_arrival_not_late_15"]==1
+    assert assoc["next_late_rate_after_late_arrival"]==1
+    assert assoc["next_late_rate_after_not_late_arrival"]==0
+
+def test_delay_gap_band_denominators_reconcile():
+    d=datetime(2025,1,5,12,tzinfo=timezone.utc)
+    l=[
+        Leg("N1","ATL","JFK",d,d+timedelta(hours=1),0,18),
+        Leg("N1","JFK","ATL",d+timedelta(hours=2),d+timedelta(hours=3),20,0),
+        Leg("N2","ATL","JFK",d,d+timedelta(hours=1),0,0),
+        Leg("N2","JFK","ATL",d+timedelta(hours=4),d+timedelta(hours=5),5,0)]
+    a=count_pairs(l)["descriptive_delay_association"]
+    total=sum(v["candidate_connections"] for b in a["actual_ground_gap_bands"].values() for v in b.values())
+    assert total==2
