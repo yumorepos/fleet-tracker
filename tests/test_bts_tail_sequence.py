@@ -1,0 +1,110 @@
+"""Synthetic checks: local clocks, overnight timestamps and conservative links."""
+from datetime import datetime,timedelta,timezone
+from fleet_tracker.bts_tail_sequence import timestamped,count_pairs,clock,Leg
+
+Z={"SEA":"America/Los_Angeles","ATL":"America/New_York",
+   "JFK":"America/New_York"}
+def flight(**edits):
+    d=dict(FlightDate="2025-01-01",Tail_Number="N123DL",Origin="SEA",
+        Dest="ATL",CRSDepTime="2200",CRSArrTime="0700",CRSElapsedTime="360",
+        DepTime="2200",ArrTime="0700",DepDelay="0.00",ArrDelay="0.00",
+        ActualElapsedTime="360")
+    d.update(edits)
+    return d
+
+def test_overnight_two_timezones():
+    leg,reason=timestamped(flight(),Z)
+    assert reason=="valid"
+    assert leg.dep.isoformat()=="2025-01-02T06:00:00+00:00"
+    assert leg.arr.isoformat()=="2025-01-02T12:00:00+00:00"
+
+def test_independent_departure_and_arrival_delay():
+    leg,reason=timestamped(flight(DepDelay="10.00",DepTime="2210",ArrDelay="25.00",
+                                  ArrTime="0725",ActualElapsedTime="375"),Z)
+    assert reason=="valid" and leg is not None
+
+def test_bad_arrival_local_clock_rejected():
+    leg,reason=timestamped(flight(ArrTime="0845"),Z)
+    assert leg is None and reason=="actual_arrival_local_clock_mismatch"
+
+def test_bad_elapsed_rejected():
+    leg,reason=timestamped(flight(ActualElapsedTime="190"),Z)
+    assert leg is None and reason=="elapsed_minutes_mismatch"
+
+def test_no_implicit_timezone_guessing():
+    leg,reason=timestamped(flight(Dest="XXX"),Z)
+    assert leg is None and reason=="missing_airport_zone"
+
+def test_bts_2400_and_invalid_clock():
+    assert clock("2400.00")==1440
+    assert clock("2360.00") is None
+
+def test_cross_midnight_same_airport_70_minute_gap():
+    prev,_=timestamped(flight(),Z)
+    nxt,reason=timestamped(flight(FlightDate="2025-01-02",Origin="ATL",Dest="JFK",
+        CRSDepTime="0810",CRSArrTime="1010",CRSElapsedTime="120",
+        DepTime="0810",ArrTime="1010",ActualElapsedTime="120"),Z)
+    assert reason=="valid"
+    summary=count_pairs([nxt,prev])
+    assert summary["candidate_20_to_360_min"]==1
+    assert summary["candidate_median_ground_minutes"]==70
+
+def test_mismatched_airport_not_turn():
+    d=datetime(2025,1,2,6,tzinfo=timezone.utc)
+    a=Leg("N1","SEA","JFK",d,d+timedelta(hours=2))
+    b=Leg("N1","ATL","SEA",d+timedelta(hours=4),d+timedelta(hours=7))
+    s=count_pairs([a,b])
+    assert s["airport_discontinuities"]==1 and s["candidate_20_to_360_min"]==0
+
+def test_overlap_is_suspicious_not_a_turn():
+    d=datetime(2025,1,2,6,tzinfo=timezone.utc)
+    a=Leg("N1","ATL","JFK",d,d+timedelta(hours=2))
+    b=Leg("N1","JFK","ATL",d+timedelta(hours=1),d+timedelta(hours=4))
+    s=count_pairs([a,b])
+    assert s["same_tail_overlap"]==1 and s["candidate_20_to_360_min"]==0
+
+def test_no_inferred_activity_from_single_observation():
+    d=datetime(2025,1,2,6,tzinfo=timezone.utc)
+    s=count_pairs([Leg("N1","SEA","JFK",d,d+timedelta(hours=2))])
+    assert s["observed_consecutive_pairs"]==0 and s["unique_valid_tails"]==1
+
+def test_historical_pbi_time_zone_code_drift_is_corrected():
+    from fleet_tracker.bts_tail_sequence import apply_2025_airport_zone_aliases
+    zones=apply_2025_airport_zone_aliases(Z)
+    assert zones["PBI"]=="America/New_York"
+    leg,reason=timestamped(flight(Origin="PBI",Dest="ATL",
+        CRSDepTime="0800",CRSArrTime="1000",CRSElapsedTime="120",
+        DepTime="0800",ArrTime="1000",ActualElapsedTime="120"),zones)
+    assert reason=="valid" and leg.origin=="PBI"
+
+def test_conflicting_historical_pbi_mapping_must_fail():
+    from fleet_tracker.bts_tail_sequence import apply_2025_airport_zone_aliases
+    import pytest
+    with pytest.raises(ValueError,match="Conflicting PBI"):
+        apply_2025_airport_zone_aliases({"PBI":"America/Chicago"})
+
+def test_delay_association_counts_only_valid_candidate_pairs():
+    d=datetime(2025,1,5,12,tzinfo=timezone.utc)
+    # Two separate tails avoid accidental cross-tail linking.
+    old_late=Leg("N1","ATL","JFK",d,d+timedelta(minutes=90),0,25)
+    next_late=Leg("N1","JFK","ATL",d+timedelta(minutes=140),d+timedelta(minutes=220),20,0)
+    old_early=Leg("N2","ATL","JFK",d,d+timedelta(minutes=90),0,0)
+    next_early=Leg("N2","JFK","ATL",d+timedelta(minutes=160),d+timedelta(minutes=250),5,0)
+    result=count_pairs([old_late,next_late,old_early,next_early])
+    assoc=result["descriptive_delay_association"]
+    assert result["candidate_20_to_360_min"]==2
+    assert assoc["previous_arrival_late_15"]==1
+    assert assoc["previous_arrival_not_late_15"]==1
+    assert assoc["next_late_rate_after_late_arrival"]==1
+    assert assoc["next_late_rate_after_not_late_arrival"]==0
+
+def test_delay_gap_band_denominators_reconcile():
+    d=datetime(2025,1,5,12,tzinfo=timezone.utc)
+    l=[
+        Leg("N1","ATL","JFK",d,d+timedelta(hours=1),0,18),
+        Leg("N1","JFK","ATL",d+timedelta(hours=2),d+timedelta(hours=3),20,0),
+        Leg("N2","ATL","JFK",d,d+timedelta(hours=1),0,0),
+        Leg("N2","JFK","ATL",d+timedelta(hours=4),d+timedelta(hours=5),5,0)]
+    a=count_pairs(l)["descriptive_delay_association"]
+    total=sum(v["candidate_connections"] for b in a["actual_ground_gap_bands"].values() for v in b.values())
+    assert total==2

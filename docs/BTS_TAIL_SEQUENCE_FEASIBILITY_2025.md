@@ -1,0 +1,110 @@
+# BTS Delta aircraft-sequence feasibility: Jan and Jul 2025
+
+This is a bounded research gate, not a full aircraft utilization dashboard.
+It reuses official BTS Reporting Carrier On-Time Performance monthly archives with
+the exact source SHA-256 checksums validated by the preceding flight-level pilot.
+The reported carrier selection is DL and is not all Delta-marketed services.
+
+## Clock reconstruction
+
+BTS 2025 Technical Directive #39 (BTS public website) states that reported gate
+departure/arrival clock times are local to each airport; actual and CRS elapsed
+minutes compensate for timezone differences. FlightDate belongs to the scheduled
+operation date, and operations that cross a month boundary are reported in
+the month they begin.
+
+This pilot maps IATA airport codes to IANA zones with pinned
+airportsdata==20261103 (MIT license). Mapping is a reference to be tested,
+not an official BTS airport mapping.
+
+For each completed (not canceled, not diverted) DL record:
+1. Scheduled departure UTC is FlightDate plus CRSDepTime in the origin timezone.
+   A clock time 2400 is the next local midnight.
+2. Scheduled arrival UTC is scheduled departure UTC plus CRSElapsedTime;
+   cross-check the destination local CRSArrTime.
+3. Reconstruct actual gate UTC timestamps by adding DepDelay and ArrDelay
+   independently to the corresponding scheduled UTC times.
+4. Check the published local DepTime and ArrTime (1-minute tolerance)
+   and ActualElapsedTime against the difference in reconstructed gate UTC.
+5. Explicitly count and exclude missing/ambiguous or contradictory clocks,
+   time zones, elapsed minutes, and tails. No guessed repairs.
+
+## Candidate same-tail connection
+
+Group valid completed flights by reported tail within January and July
+separately. Sort by actual gate departure UTC. Pair *consecutive observed*
+departures of a given tail and classify:
+- Airport mismatch between prior destination and next origin.
+- Overlap (next departure before prior arrival).
+- Same-airport gap shorter than 20 minutes.
+- Candidate same-airport nonoverlapping gap 20 to 360 minutes.
+- Same-airport gap 6 to 24 hours, or longer than 24 hours.
+
+The 20- and 360-minute bounds are *analyst-selected screening filters*,
+not published airline legal minimum turns or operating policy. A
+candidate matching pair is an observed partial-flight-record relationship,
+not proof of all intermediate flights or a complete physical rotation.
+The rate denominators must always refer to the sample of DL flights.
+
+Predefined timestamp acceptance requires >=98% of completed DL rows pass
+source-clock/timezone/actual-elapsed consistency checks in EACH month;
+candidate-only link screening requires >=500 candidate pairs and <=0.5%
+overlap among same-airport observed consecutive pairs in each month.
+
+## Limitations and claims
+
+BTS reporting excludes many international, transborder and otherwise
+nonreportable segments, and completed-only filtering removes cancellations
+and diversions. An aircraft may operate additional unobserved flights.
+January and July are distinct samples, never one continuous sequence;
+first and last observations in each month are left/right-censored.
+Tail codes and reference timezone mapping can be incomplete or erroneous.
+Do not claim full fleet use, actual maintenance, causal delay propagation,
+verified operational minimum turns, or complete rotations.
+
+Only per-month aggregated quality statistics and counts may appear in
+this repository; original flight/tail rows stay in ephemeral CI storage.
+Review the artifact and draft PR before any publish/merge decision.
+
+Sources:
+- https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time
+- https://transtats.bts.gov/PREZIP/
+- https://pypi.org/project/airportsdata/20261103/
+
+## Specific historical airport identifier correction
+
+The first real-data run showed 1,200 January and 1,163 July completed
+flights with PBI excluded because the current-version IATA timezone
+reference no longer supplies that historic key. The airport's official
+July 9, 2026 notice confirms a rename from Palm Beach International
+Airport to President Donald J. Trump International Airport and says
+the IATA code would change from PBI to DJT on August 18, 2026.
+Our 2025 reporting dates precede that change. Independent FAA and
+airport data locate West Palm Beach, Florida in the Eastern zone.
+A **single 2025-only PBI=America/New_York time-zone exception** is
+therefore warranted. It does not change any BTS airport IDs or
+flight records, or enable arbitrary current-to-historical airport joins.
+If an existing PBI timezone disagrees, the pipeline stops instead
+of overwriting it. The result is revalidated against the source's
+actual and scheduled gate clocks and elapsed minutes.
+
+Evidence:
+- https://www.pbia.org/articles/post/president-donald-j-trump-international-airport-name-change-takes-effect/
+- https://www.faa.gov/air_traffic/publications/atpubs/aip_html/part3_ad_2.0_florida.html
+- https://www.airnav.com/airport/PBI
+
+## Second-pass descriptive delay association (conditional on connection feasibility)
+
+Only after the clock/tail gates pass, compare whether the *next observed
+departure* is at least 15 minutes delayed across the sample of candidate
+20-360-minute same-tail same-airport connections. Two exposure groups:
+the prior observed arrival was >=15 minutes late or <15 minutes late.
+Report four exact counts and conditional rates, and stratify by
+actual gate ground gap of 20-59, 60-119, and 120-360 minutes.
+
+These actual-gap strata are selected using realized outcomes and may
+create additional selection bias. The exposure and outcome share weather,
+airport, network, scheduled time, reporting coverage and aircraft
+assignment confounders. No causal attribution or counterfactual delay
+savings can be inferred. The analysis is intended to demonstrate cautious
+operational KPI communication, not flight-by-flight prediction.
