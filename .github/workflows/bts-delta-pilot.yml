@@ -2,6 +2,12 @@
 name: BTS Delta 2025 quality pilot
 on:
   workflow_dispatch:
+  push:
+    branches: [research/delta-bts-2025-pilot]
+    paths:
+      - 'src/fleet_tracker/bts_tail_sql_verify.py'
+      - 'tests/test_bts_tail_sql_verify.py'
+      - '.github/workflows/bts-delta-pilot.yml'
 permissions:
   contents: read
 jobs:
@@ -16,7 +22,7 @@ jobs:
       - name: Offline unit tests
         run: |
           python -m pip install pytest airportsdata==20261103
-          PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py tests/test_bts_delta_sql_verify.py tests/test_bts_tail_sequence.py
+          PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py tests/test_bts_delta_sql_verify.py tests/test_bts_tail_sequence.py tests/test_bts_tail_sql_verify.py
       - name: Fetch official monthly ZIPs once, in temporary runner workspace
         run: |
           PYTHONPATH=src python -c 'from fleet_tracker.bts_delta_pilot import download; from pathlib import Path; download(1,Path("bts_1.zip")); download(7,Path("bts_7.zip"))'
@@ -39,6 +45,9 @@ jobs:
           set -e
           if [ -f bts_dl_tail_sequence_quality.json ]; then python -m json.tool bts_dl_tail_sequence_quality.json; fi
           exit "$result"
+      - name: Independently verify tail pairs and delay quadrants using SQL LEAD
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_tail_sql_verify --january bts_1.zip --july bts_7.zip --expected bts_dl_tail_sequence_quality.json --output bts_dl_tail_sql_verified.json
       - name: Remove source ZIPs from runner workspace
         if: always()
         run: rm -f bts_1.zip bts_7.zip
@@ -50,5 +59,6 @@ jobs:
           path: |
             bts_dl_2025_quality.json
             bts_dl_tail_sequence_quality.json
+            bts_dl_tail_sql_verified.json
           retention-days: 14
           if-no-files-found: warn
