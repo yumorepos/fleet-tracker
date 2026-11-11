@@ -1,0 +1,49 @@
+# Branch-only ephemeral official-source audit: no schedule, no production data.
+name: Delta BTS airport segment and reported cause audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline unit tests
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py tests/test_bts_driver_profile.py tests/test_bts_driver_sql_verify.py
+      - name: Download two exact official BTS archives to runner only
+        run: |
+          PYTHONPATH=src python -c 'from fleet_tracker.bts_delta_pilot import download; from pathlib import Path; download(1,Path("bts_1.zip")); download(7,Path("bts_7.zip"))'
+      - name: Revalidate source population and original KPIs
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_delta_pilot --january bts_1.zip --july bts_7.zip --output bts_dl_revalidated.json
+      - name: Compare ATL-origin vs other origin with BTS carrier-reported causes
+        run: |
+          set +e
+          PYTHONPATH=src python -m fleet_tracker.bts_driver_profile --january bts_1.zip --july bts_7.zip --baseline bts_dl_revalidated.json --output bts_dl_driver_profile.json
+          exit_code=$?
+          set -e
+          if [ -f bts_dl_driver_profile.json ]; then python -m json.tool bts_dl_driver_profile.json; fi
+          exit "$exit_code"
+      - name: Independently recompute airport/cause profile with SQLite
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_driver_sql_verify --january bts_1.zip --july bts_7.zip --expected bts_dl_driver_profile.json --output bts_dl_driver_sql_checked.json
+      - name: Remove raw source records
+        if: always()
+        run: rm -f bts_1.zip bts_7.zip
+      - name: Upload only aggregated short-lived report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bts-dl-airport-reported-causes
+          path: |
+            bts_dl_driver_profile.json
+            bts_dl_driver_sql_checked.json
+          if-no-files-found: warn
+          retention-days: 14

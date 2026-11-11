@@ -1,0 +1,50 @@
+# Delta BTS origin-segment and reported-delay-cause audit — exploratory
+
+Purpose: make Case Study 2 more operationally useful by comparing ATL-origin
+flights with other origins, and using the **carrier-reported LateAircraftDelay**
+field to contextualize the separate same-tail gate connection study.
+
+Data contract: official BTS 2025 Reporting Carrier On-Time Performance ZIPs,
+Reporting_Airline=DL, January and July separately, original SHA-256 checks.
+Use existing Delta KPI pilot to independently verify source totals. No raw
+flight-level data are committed. Use only aggregate, non-identifying counts.
+
+Source: BTS Technical Directive #39:
+https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time
+
+Measures:
+- Scheduled count; cancellation and diversion / scheduled denominator.
+- Arrival on-time = ArrDel15=0 / completed nondiverted with valid ArrDel15.
+- Late-arrival population = ArrDel15=1 among completed nondiverted flights.
+- Among those late arrivals ONLY, count positive carrier-reported
+  LateAircraftDelay and the five reported cause minutes.
+- Missing cause detail remains missing, never silently zero.
+- Segments: ATL departure/origin airport vs all other domestic
+  reported origins. Segments sum to the complete DL population.
+- No weather or causal inference and no claim about complete rotations.
+
+Exploratory gate: at least 95% of late arrivals with all five numeric delay
+cause fields, 100% reconciliation to original source KPIs, no invalid status
+or contradictory arrival delay flags, and **zero late-arrival cause sums that
+differ from the ArrDelay by more than one minute**. The 2025 BTS Technical
+Directive #39 requires reported causal delay minutes to equal arrival delay;
+this gate prevents a misleading acceptance of unreconciled attribution.
+
+The fraction of delayed flights with a positive LateAircraftDelay value is
+reported **among delayed flights with all five complete cause fields**,
+alongside coverage among *all* delayed flights. Missing detail is never
+imputed as zero and must not silently reduce the positive-cause rate. Rejected source or missing columns
+means REVISE, not a repaired estimate.
+
+**Verified:** The full source-data profile succeeded on
+[run #43101205867](https://github.com/yumorepos/fleet-tracker/actions/runs/43101205867)
+with 100% complete delay-cause detail and zero cause-minute mismatches.
+The separate SQL source-data recomputation on
+[run #43102105597](https://github.com/yumorepos/fleet-tracker/actions/runs/43102105597)
+passed independently; 21 offline tests passed at this checkpoint. Both use
+the exact Jan/Jul 2025 hashed BTS archives, and neither implies cause.
+
+This is a one-time research step on the existing Fleet Tracker repository,
+not a data pipeline, airline forecast, or interactive dashboard.
+The evidence workflow is manual-only, with no automatic downloads, secrets
+or GitHub data writes.
