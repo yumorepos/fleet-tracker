@@ -56,3 +56,11 @@ def test_wrong_source_month_fails(tmp_path):
 def test_only_approved_months(tmp_path):
     with pytest.raises(ValueError, match="Only Jan"):
         analyze(archive(tmp_path,[record()]),2)
+
+def test_excel_formatted_binary_flags(tmp_path):
+    r=analyze(archive(tmp_path,[record(Cancelled="0.00", Diverted="0.00",
+                                       ArrDel15="0.00", ArrDelay="-2.00")]),1)
+    assert r["counts"]["status_valid"]==1
+    assert r["counts"]["eligible"]==1
+    assert r["counts"]["arr15_valid"]==1
+    assert r["counts"]["ontime"]==1

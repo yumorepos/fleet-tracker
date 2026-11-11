@@ -38,8 +38,13 @@ def columns(headers):
     return out
 
 def flag(s):
-    s = str(s or "").strip()
-    return 0 if s in ("0", "0.0") else 1 if s in ("1", "1.0") else None
+    # BTS's exported binary fields may be formatted like 0.00 or 1.00.
+    # Parse only exact numeric zero/one; missing and other values stay unknown.
+    try:
+        value = float(str(s or "").strip())
+    except ValueError:
+        return None
+    return int(value) if value in (0.0, 1.0) else None
 
 def flight_date(s):
     s = (s or "").strip()
