@@ -25,12 +25,17 @@ jobs:
           PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py
       - name: Read official monthly ZIPs and audit DL rows
         run: |
-          PYTHONPATH=src python -m fleet_tracker.bts_delta_pilot --download --output "$RUNNER_TEMP/bts_dl_2025_quality.json"
+          set +e
+          PYTHONPATH=src python -m fleet_tracker.bts_delta_pilot --download --output bts_dl_2025_quality.json
+          result=$?
+          set -e
+          if [ -f bts_dl_2025_quality.json ]; then python -m json.tool bts_dl_2025_quality.json; fi
+          exit "$result"
       - name: Upload aggregate-only audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bts-dl-2025-quality
-          path: $RUNNER_TEMP/bts_dl_2025_quality.json
+          path: bts_dl_2025_quality.json
           retention-days: 14
           if-no-files-found: warn
