@@ -1,14 +1,6 @@
 # Branch-only ephemeral official-source audit: no schedule, no production data.
 name: Delta BTS airport segment and reported cause audit
 on:
-  push:
-    branches: [research/delta-driver-profile-20261111]
-    paths:
-      - src/fleet_tracker/bts_driver_profile.py
-      - tests/test_bts_driver_profile.py
-      - .github/workflows/bts-driver-profile.yml
-      - src/fleet_tracker/bts_driver_sql_verify.py
-      - tests/test_bts_driver_sql_verify.py
   workflow_dispatch:
 permissions:
   contents: read

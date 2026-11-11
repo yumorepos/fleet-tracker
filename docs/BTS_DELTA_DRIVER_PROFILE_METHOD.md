@@ -36,5 +36,15 @@ alongside coverage among *all* delayed flights. Missing detail is never
 imputed as zero and must not silently reduce the positive-cause rate. Rejected source or missing columns
 means REVISE, not a repaired estimate.
 
+**Verified:** The full source-data profile succeeded on
+[run #43101205867](https://github.com/yumorepos/fleet-tracker/actions/runs/43101205867)
+with 100% complete delay-cause detail and zero cause-minute mismatches.
+The separate SQL source-data recomputation on
+[run #43102105597](https://github.com/yumorepos/fleet-tracker/actions/runs/43102105597)
+passed independently; 21 offline tests passed at this checkpoint. Both use
+the exact Jan/Jul 2025 hashed BTS archives, and neither implies cause.
+
 This is a one-time research step on the existing Fleet Tracker repository,
 not a data pipeline, airline forecast, or interactive dashboard.
+The evidence workflow is manual-only, with no automatic downloads, secrets
+or GitHub data writes.

@@ -1,6 +1,6 @@
 # Delta 2025: bounded origin segment and reported-delay cause results
 
-**Status (2026-11-11):** The initial real-source study **passed** its quality gates on [GitHub Actions run #43101205867](https://github.com/yumorepos/fleet-tracker/actions/runs/43101205867). Its 16 offline tests passed, its population and on-time counts reconciled with the earlier independently audited BTS pilot, and the five cause minutes equalled the reported arrival delay within one minute on every delayed record with complete detail. A separate **SQLite cross-check has been added but must be confirmed passing before merging or upgrading the public case study**.
+**Status (2026-11-11):** The initial real-source study **passed** its quality gates on [GitHub Actions run #43101205867](https://github.com/yumorepos/fleet-tracker/actions/runs/43101205867). Its 16 offline tests passed, its population and on-time counts reconciled with the earlier independently audited BTS pilot, and the five cause minutes equalled the reported arrival delay within one minute on every delayed record with complete detail. An independent SQLite re-aggregation **passed** in [GitHub Actions run #43102105597](https://github.com/yumorepos/fleet-tracker/actions/runs/43102105597): **21 offline tests passed**, and SQLite exactly reproduced the primary segment denominators, late arrival counts, positive LateAircraftDelay incidence, reported minutes, missing cause counts, and mismatch checks in both official source archives.
 
 Population: BTS Reporting Carrier On-Time Performance monthly archives for **January and July 2025**, filtered to \`Reporting_Airline=DL\`. U.S. reportable domestic operations, NOT all Delta-marketed, international or codeshare operations. These are two separate unadjusted monthly snapshots. Airport segment is **departure/origin airport ATL** versus **all other origin airports**. Rows belong to exactly one segment.
 
@@ -30,7 +30,7 @@ Rates use separate denominators on the same row. This is a *conditional percenta
 - January: 17,468 + 58,838 = **76,306 scheduled**, and 12,777 + 46,946 = **59,723 on-time completed**.
 - July: 21,855 + 72,211 = **94,066 scheduled**, and 14,993 + 54,334 = **69,327 on-time completed**.
 - The source study found **100% complete five-cause detail** among the 14,302 January and 22,918 July late-arriving DL reported flights. No invalid arrival flags, no arrival flag/delay contradictions, and **zero cause-minute sum mismatches** above one minute.
-- The experiment independently checks cause-field completeness, missingness, and source archive SHA. The newly added SQL implementation must independently agree before the results are treated as final for public release.
+- The primary and independent SQL implementations independently check cause-field completeness, missingness, and source archive SHA. The independent SQLite verifier passed all population and cause metrics. These results are now internally accepted **within their limited observational study scope**; neither implementation establishes causal attribution.
 
 ## Finding and cautious operational interpretation
 
