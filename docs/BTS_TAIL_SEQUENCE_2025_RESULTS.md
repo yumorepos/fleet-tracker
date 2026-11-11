@@ -1,6 +1,12 @@
 # Delta 2025 operational reliability: aircraft connection feasibility audit
 
-Date: 2026-11-11. Branch-only research evidence; NOT a published, production, or causal aviation performance claim. 
+Date: 2026-11-11. **Current source status:** Merged in
+[PR #11](https://github.com/yumorepos/fleet-tracker/pull/11), with independent
+window-SQL verification. Presented in the
+[public portfolio](https://yumorepos.github.io/airline-operations.html)
+as a *limited descriptive, noncausal historical case study*, not a
+production or complete-fleet data product. Sections describing early
+pre-verification checkpoints remain historical snapshots. 
 Actual-source run: https://github.com/yumorepos/fleet-tracker/actions/runs/43086211150
 PR: https://github.com/yumorepos/fleet-tracker/pull/11
 
@@ -60,9 +66,9 @@ The comparison is neither a causal estimate nor a whole-airline prediction: airp
 
 ## Verification and boundaries
 
-The successful GitHub Actions run listed above passed **22 offline tests**, the original independently recomputed SQLite baseline KPI counts, the 2025 source ZIP hash checks, and both timestamp feasibility thresholds. Candidate pair identities and delay-association quadrants were calculated by one transparent implementation with synthetic unit tests; they have **not** had a separate independent real-data SQL reconstruction. The report preserves counts and denominators for subsequent verification. No raw record, individual tail activity or inferred aircraft location was committed or uploaded.
+The successful GitHub Actions run listed above passed **22 offline tests**, the original independently recomputed SQLite baseline KPI counts, the 2025 source ZIP hash checks, and both timestamp feasibility thresholds. Candidate pair identities and delay-association quadrants were calculated by one transparent implementation with synthetic unit tests; at this earlier checkpoint they had **not yet** had a separate independent real-data SQL reconstruction (completed in the later section). The report preserves counts and denominators for subsequent verification. No raw record, individual tail activity or inferred aircraft location was committed or uploaded.
 
-**Decision:** GO for a *limited descriptive aircraft connection study*, but remain CANDIDATE ONLY for actual rotation completeness and STOP short of causality. Continue with interview-ready SQL/KPI reporting using this evidence rather than a new data pipeline, UI, or ML model. Revisit the 3 clock contradictions, the 2 overlaps and selection limitations before upgrading claims. No publishing or merging of this draft PR without separate review.
+**Decision:** GO for a *limited descriptive aircraft connection study*, but remain CANDIDATE ONLY for actual rotation completeness and STOP short of causality. Continue with interview-ready SQL/KPI reporting using this evidence rather than a new data pipeline, UI, or ML model. Revisit the 3 clock contradictions, the 2 overlaps and selection limitations before upgrading claims. That preliminary draft was only merged following separate source-data and SQL verification; see final independent section below.
 
 Sources:
 - https://transtats.bts.gov/PREZIP/
