@@ -25,7 +25,15 @@ Measures:
 
 Exploratory gate: at least 95% of late arrivals with all five numeric delay
 cause fields, 100% reconciliation to original source KPIs, no invalid status
-or contradictory arrival delay flags. Rejected source or missing columns
+or contradictory arrival delay flags, and **zero late-arrival cause sums that
+differ from the ArrDelay by more than one minute**. The 2025 BTS Technical
+Directive #39 requires reported causal delay minutes to equal arrival delay;
+this gate prevents a misleading acceptance of unreconciled attribution.
+
+The fraction of delayed flights with a positive LateAircraftDelay value is
+reported **among delayed flights with all five complete cause fields**,
+alongside coverage among *all* delayed flights. Missing detail is never
+imputed as zero and must not silently reduce the positive-cause rate. Rejected source or missing columns
 means REVISE, not a repaired estimate.
 
 This is a one-time research step on the existing Fleet Tracker repository,

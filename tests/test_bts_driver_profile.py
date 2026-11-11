@@ -30,7 +30,7 @@ def test_delayed_arrival_causes_counted_without_double_counting_flights():
     assert x["late_arrival_15"]==1
     assert x["reported_cause_minutes"]["LateAircraftDelay"]==20
     assert x["reported_positive_cause_flight_count"]["LateAircraftDelay"]==1
-    assert x["late_aircraft_reported_positive_share_of_late_arrivals"]==1
+    assert x["late_aircraft_positive_share_among_complete_late_arrivals"]==1
     assert x["cause_detail_coverage_among_late_arrivals"]==1
 
 def test_early_arrival_cause_fields_blank_are_not_invalid():
@@ -41,7 +41,7 @@ def test_early_arrival_cause_fields_blank_are_not_invalid():
     x=finalize(c)
     assert x["on_time"]==1
     assert x["late_arrival_15"]==0
-    assert x["late_aircraft_reported_positive_share_of_late_arrivals"] is None
+    assert x["late_aircraft_positive_share_among_complete_late_arrivals"] is None
 
 def test_missing_delay_cause_not_treated_as_reported_zero():
     c=Counter()
@@ -51,6 +51,7 @@ def test_missing_delay_cause_not_treated_as_reported_zero():
     assert x["late_arrivals_with_complete_cause_detail"]==0
     assert x["reported_cause_minutes"]["LateAircraftDelay"]==0
     assert x["cause_detail_coverage_among_late_arrivals"]==0
+    assert x["late_aircraft_positive_share_among_complete_late_arrivals"] is None
 
 def test_cancelled_excluded_from_arrival_population():
     c=Counter()
@@ -72,3 +73,19 @@ def test_late_aircraft_not_equated_to_all_late_arrivals():
     x=finalize(c)
     assert x["late_arrival_15"]==1
     assert x["reported_positive_cause_flight_count"]["LateAircraftDelay"]==0
+
+def test_cause_minutes_detect_unreconciled_arrival_delay():
+    c=Counter()
+    process(row(ArrDelay="36.00"),c)
+    x=finalize(c)
+    assert x["cause_minutes_vs_arrdelay_over_1min"]==1
+    assert x["late_arrivals_with_complete_cause_detail"]==1
+
+def test_positive_cause_share_is_conditional_on_complete_detail():
+    c=Counter()
+    process(row(),c)
+    process(row(Origin="JFK",LateAircraftDelay=""),c)
+    x=finalize(c)
+    assert x["late_arrivals_with_complete_cause_detail"]==1
+    assert x["late_arrivals_missing_cause_detail"]==1
+    assert x["late_aircraft_positive_share_among_complete_late_arrivals"]==1

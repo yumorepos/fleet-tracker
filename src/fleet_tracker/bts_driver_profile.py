@@ -103,8 +103,10 @@ def finalize(c):
     out["reported_cause_minutes"]={
         k:round(c["cause_minutes_cents_"+k]/100,2) for k in CAUSE_FIELDS
     }
-    out["late_aircraft_reported_positive_share_of_late_arrivals"]=percent(
-        c["positive_LateAircraftDelay"],c["late_arrival_15"])
+    # Missing causal detail is NOT evidence that late aircraft did not contribute:
+    # use only verified complete cause rows for this conditional proportion.
+    out["late_aircraft_positive_share_among_complete_late_arrivals"]=percent(
+        c["positive_LateAircraftDelay"],c["late_arrivals_with_complete_cause_detail"])
     return out
 
 def analyze(path:Path,month:int):
@@ -139,18 +141,20 @@ def analyze(path:Path,month:int):
     out={k:finalize(v) for k,v in groups.items()}
     allrow, atl,other=(out[x] for x in ("ALL_DL","ATL_origin","Other_origin"))
     for count in ("scheduled","canceled","diverted","completed","on_time",
-                  "late_arrival_15","late_arrivals_with_complete_cause_detail"):
+                  "late_arrival_15","late_arrivals_with_complete_cause_detail",
+                  "late_arrivals_missing_cause_detail","cause_minutes_vs_arrdelay_over_1min"):
         if allrow[count]!=atl[count]+other[count]:
             raise AssertionError("Segment group reconciliation failed: "+count)
     coverage=allrow["cause_detail_coverage_among_late_arrivals"]
     if (allrow["scheduled"]<1000 or allrow["bad_status"] or
         allrow["bad_arrival_flag"] or allrow["arrival_delay_discrepancy"] or
-        coverage is None or coverage<.95):
+        coverage is None or coverage<.95 or
+        allrow["cause_minutes_vs_arrdelay_over_1min"]!=0):
         verdict="REVISE"
     else:
         verdict="GO_FOR_DESCRIPTIVE_CAUSE_AUDIT"
     return {"month":month,"year":2025,"source_sha256":h.hexdigest(),
-            "cause_field_contract":"Carrier-reported delay-cause minutes on ARRDEL15=1 flights; no independent causal attribution",
+            "cause_field_contract":"Carrier-reported delay-cause minutes on ARRDEL15=1 flights; all five categories must sum to reported arrival delay within one minute; no independent causal attribution",
             "verdict":verdict,"groups":out}
 
 def main(argv=None):
