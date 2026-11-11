@@ -1,6 +1,11 @@
 # BTS Delta Jan/Jul 2025 read-only pilot — verified checkpoint (2026-11-11)
 
-**Status: core KPI source-quality GO for two bounded months; no public case study claim or model released.**
+**Current status (2026-11-11):** Core Jan/Jul KPI analysis is merged on `main`
+via [PR #11](https://github.com/yumorepos/fleet-tracker/pull/11), has independent
+real-data SQL reconciliation, and is referenced in the
+[public operational-reliability case study](https://yumorepos.github.io/airline-operations.html).
+The following table is the **original quality checkpoint**, not a production
+data mart or claim of full fleet operations.
 
 Official data: [BTS Reporting Carrier On-Time Performance](https://transtats.bts.gov/PREZIP/), Jan and July 2025 all-field monthly ZIPs. [2025 BTS reporting directive #39](https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time). Filter `Reporting_Airline=DL`; this is **not** all Delta-marketed operations or a certified continuous fleet dataset.
 
@@ -30,11 +35,11 @@ Official data: [BTS Reporting Carrier On-Time Performance](https://transtats.bts
 
 **Limitations:** July's descriptive arrival rate is 5.52 percentage points below January, but the traffic/route/schedule mix differs; **no causal or weather/seasonal effect is identified**. Complete nonblank tail fields in two months do not prove tail continuity, actual daily utilization, maintenance, delay propagation or valid turnarounds. U.S. domestic reporting rules exclude international/transborder segments and do not certify complete Delta-marketed network coverage.
 
-**Next gated task:** Independent calculation with SQL or a separate implementation; source flight-grain/codeshare semantics review; cross-midnight gate-time and tail continuity assessment. Freeze the source snapshot and do not add a UI or merge this exploratory PR until reviewed.
+**Historical next task (subsequently completed):** Independent calculation with SQL or a separate implementation; source flight-grain/codeshare semantics review; cross-midnight gate-time and tail continuity assessment. Freeze the source snapshot and do not add a UI or merge this exploratory PR until reviewed.
 ## Independent SQL validation — completed November 11, 2026
 
 A separate [SQLite audit workflow](https://github.com/yumorepos/fleet-tracker/actions/runs/43082988191) re-read the same official two ZIPs, normalized binary flags independently with Decimal, and recomputed the eligible flight denominators and status counts in SQL. **PASS:** 12 count metrics per month exactly match the primary Python analysis, source SHA-256 hashes match, and no duplicate-key disagreements were detected.
 
 The verified DL scheduled counts remained **76,306** (January) and **94,066** (July). The independent audit's offline suite passed **8/8 tests**. This verifies a deliberately narrow set of arithmetic/data-contract measures, not BTS-published airline score parity, countrywide operational coverage, tail sequence validity, or causal conclusions.
 
-The temporary branch-only Actions workflow should be retired or converted to non-scheduled reproducibility guidance before any merge. The PR remains draft and unmerged.
+The temporary branch-only Actions workflow should be retired or converted to non-scheduled reproducibility guidance before any merge. The PR was draft/unmerged at this checkpoint; it was subsequently merged via PR #11 after aircraft and SQL validation. See current-status note above.
