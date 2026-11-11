@@ -6,9 +6,12 @@ on:
     paths:
       - src/fleet_tracker/bts_delta_pilot.py
       - src/fleet_tracker/bts_delta_sql_verify.py
+      - src/fleet_tracker/bts_tail_sequence.py
       - tests/test_bts_delta_pilot.py
       - tests/test_bts_delta_sql_verify.py
+      - tests/test_bts_tail_sequence.py
       - docs/BTS_DELTA_PILOT_2025.md
+      - docs/BTS_TAIL_SEQUENCE_FEASIBILITY_2025.md
       - .github/workflows/bts-delta-pilot.yml
 permissions:
   contents: read
@@ -23,8 +26,8 @@ jobs:
           python-version: "3.12"
       - name: Offline unit tests
         run: |
-          python -m pip install pytest
-          PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py tests/test_bts_delta_sql_verify.py
+          python -m pip install pytest airportsdata==20261103
+          PYTHONPATH=src python -m pytest -q tests/test_bts_delta_pilot.py tests/test_bts_delta_sql_verify.py tests/test_bts_tail_sequence.py
       - name: Fetch official monthly ZIPs once, in temporary runner workspace
         run: |
           PYTHONPATH=src python -c 'from fleet_tracker.bts_delta_pilot import download; from pathlib import Path; download(1,Path("bts_1.zip")); download(7,Path("bts_7.zip"))'
@@ -39,6 +42,14 @@ jobs:
       - name: Independently recompute KPI denominators with SQLite
         run: |
           PYTHONPATH=src python -m fleet_tracker.bts_delta_sql_verify --january bts_1.zip --july bts_7.zip --expected bts_dl_2025_quality.json
+      - name: Validate local gate clocks and candidate tail connections
+        run: |
+          set +e
+          PYTHONPATH=src python -m fleet_tracker.bts_tail_sequence --january bts_1.zip --july bts_7.zip --prior-report bts_dl_2025_quality.json --output bts_dl_tail_sequence_quality.json
+          result=$?
+          set -e
+          if [ -f bts_dl_tail_sequence_quality.json ]; then python -m json.tool bts_dl_tail_sequence_quality.json; fi
+          exit "$result"
       - name: Remove source ZIPs from runner workspace
         if: always()
         run: rm -f bts_1.zip bts_7.zip
@@ -47,6 +58,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bts-dl-2025-quality
-          path: bts_dl_2025_quality.json
+          path: |
+            bts_dl_2025_quality.json
+            bts_dl_tail_sequence_quality.json
           retention-days: 14
           if-no-files-found: warn
