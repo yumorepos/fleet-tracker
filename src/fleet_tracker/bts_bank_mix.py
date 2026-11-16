@@ -16,6 +16,7 @@ from pathlib import Path
 import zipfile
 
 from fleet_tracker.bts_delta_pilot import flight_date
+from fleet_tracker.bts_atomic_output import write_json_new
 from fleet_tracker.bts_driver_profile import EXPECTED_SHA
 
 NEEDED = (
@@ -204,10 +205,7 @@ def run(january: Path, july: Path, baseline: Path, output: Path) -> None:
         ],
         "months": months,
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    if output.exists():
-        raise FileExistsError("Refusing to overwrite an existing research report")
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    write_json_new(output, report)
 
 
 def main(argv=None):

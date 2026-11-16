@@ -16,6 +16,7 @@ import sqlite3
 import zipfile
 
 from fleet_tracker.bts_delta_pilot import flight_date
+from fleet_tracker.bts_atomic_output import write_json_new
 from fleet_tracker.bts_driver_profile import EXPECTED_SHA
 
 FIELDS = (
@@ -194,10 +195,7 @@ def main(argv=None):
     p.add_argument("--output", required=True, type=Path)
     a = p.parse_args(argv)
     result = verify({1: a.january, 7: a.july}, json.loads(a.report.read_text()))
-    a.output.parent.mkdir(parents=True, exist_ok=True)
-    if a.output.exists():
-        raise FileExistsError("Refusing to overwrite independent verification report")
-    a.output.write_text(json.dumps(result, indent=2) + "\n")
+    write_json_new(a.output, result)
     print(json.dumps(result, indent=2))
     return 0
 
