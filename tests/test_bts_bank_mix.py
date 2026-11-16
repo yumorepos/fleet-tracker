@@ -131,3 +131,42 @@ def test_missing_matched_cells_cannot_generate_fake_standardization():
     assert out["shared_destination_bank"]["matched_strata"] == 0
     assert out["shared_destination_bank"]["pooled_standardized_atl_rate"] is None
     assert out["shared_destination_bank"]["coverage_verdict"] == "LOW_COVERAGE_OR_NO_MATCH"
+
+
+
+def test_atomic_json_report_roundtrip_and_existing_output(tmp_path):
+    from fleet_tracker.bts_atomic_output import write_json_new
+    target = tmp_path / "audited.json"
+    payload = {"status": "verified", "months": [1, 7]}
+    write_json_new(target, payload)
+    assert json.loads(target.read_text()) == payload
+    original = target.read_bytes()
+    with pytest.raises(FileExistsError):
+        write_json_new(target, {"status": "unverified"})
+    assert target.read_bytes() == original
+    assert not list(tmp_path.glob(".bts-report-*"))
+
+
+def test_competing_writer_preserved_and_no_temp_files(tmp_path, monkeypatch):
+    from fleet_tracker import bts_atomic_output as atomic
+    target = tmp_path / "audit.json"
+    real_link = atomic.os.link
+
+    def racing_link(source, destination):
+        target.write_text('{"owner": "other"}')
+        return real_link(source, destination)
+
+    monkeypatch.setattr(atomic.os, "link", racing_link)
+    with pytest.raises(FileExistsError):
+        atomic.write_json_new(target, {"owner": "this"})
+    assert json.loads(target.read_text()) == {"owner": "other"}
+    assert not list(tmp_path.glob(".bts-report-*"))
+
+
+def test_json_publisher_refuses_non_finite_values(tmp_path):
+    from fleet_tracker.bts_atomic_output import write_json_new
+    target = tmp_path / "invalid.json"
+    with pytest.raises(ValueError):
+        write_json_new(target, {"bad": float("nan")})
+    assert not target.exists()
+    assert not list(tmp_path.glob(".bts-report-*"))
