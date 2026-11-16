@@ -32,7 +32,7 @@ The BTS studies are merged research artifacts, not an always-on flight-monitorin
 - DuckDB for the query layer, Parquet for flight history (Hive-partitioned by airline / year / month)
 - OpenSky Network for live flights (authenticated tier)
 - Static site generated with Astro for the dashboard (Phase 4)
-- GitHub Actions for manually triggered BTS verification and tests; recurring fleet collection is intentionally disabled
+- GitHub Actions run automated tests on pushes and pull requests; BTS research verification is manually triggered, and recurring fleet collection remains disabled
 
 ## Layout
 
