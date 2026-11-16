@@ -1,21 +1,30 @@
 # Fleet Tracker
 
-Tracking current and historical fleets of major airlines, with per-aircraft history.
+**Evidence-first airline operational reliability research and exploratory fleet tracking using public aviation data.**
 
-## What this is
+**Start here:** [Airline Operational Performance & Reliability case study](https://yumorepos.github.io/airline-operations.html) · [BTS source/KPI validation](docs/BTS_DELTA_PILOT_2025_RESULTS.md) · [Independent aircraft-connection audit](docs/BTS_TAIL_SEQUENCE_2025_RESULTS.md) · [Origin and reported-delay profile](docs/BTS_DELTA_SEGMENT_2025_RESULTS.md) · [CI checks](https://github.com/yumorepos/fleet-tracker/actions)
 
-Fleet Tracker maintains a tail-by-tail record of an airline's fleet: which aircraft are flying, who owns them, where they've been, and how their cabins are configured. v1 covers Air Canada and Delta Air Lines mainline operations.
+## Verified research: Delta domestic operational reliability
 
-The project answers questions that public fleet pages typically don't:
+**Business question:** What can public reporting-carrier data reliably say about arrival punctuality, cancellations and *candidate* aircraft connections, and where would an operations analyst investigate next?
 
-- For any given tail number, what does its history look like?
-- Who currently owns it, who used to, and when did the leases turn over?
-- Which sub-fleet variant is it, and when was the last cabin retrofit confirmed?
-- Where has it flown over the time we've been watching?
+- **Population:** January and July **2025** BTS Reporting Carrier On-Time Performance records filtered to `Reporting_Airline=DL`: **76,306** January and **94,066** July scheduled domestic reported operations. These are two separate snapshots, **not** the full Delta-marketed network.
+- **Verified descriptive KPIs:** among non-canceled, non-diverted records with valid arrival flags, **80.68%** of January flights and **75.16%** of July flights arrived within 15 minutes of schedule. Cancellation rates were **2.80%** and **1.40%**, respectively, using all scheduled reporting-carrier records as the denominator.
+- **Operational segmentation:** ATL-origin flights had lower observed arrival punctuality than other origins in both samples (**4.77 percentage points** in January; **7.03 points** in July). This does not identify an ATL process problem or its cause.
+- **Candidate connections:** same-tail/same-airport observed pairs were screened using verified local-to-UTC gate times and a **20–360-minute** ground interval. Missing flights, assignments and reporting coverage prevent claims about complete rotations, actual fleet utilization or causal delay propagation.
+- **Verification:** original source archive hashes and count contracts were checked; a separate SQLite implementation independently reproduced the population counts, candidate-pair counts and delay-association groups. See the linked methods/results and the repository's [test workflow](https://github.com/yumorepos/fleet-tracker/actions/workflows/tests.yml).
 
-## Status
+**Decision boundary:** The study supports historical KPI reporting and prioritizing questions for further investigation. It does **not** show a seasonal effect, an operational intervention, a prediction model or preventable airline savings.
 
-Active development. The repository contains the data model, schema, full test suite (92 tests), a working OpenSky live-flight collector with OAuth authentication, a working Wikipedia airline-fleet collector (type-level signal), and `notebooks/01-fleet-overview.ipynb` — a fleet composition + data-quality-audit notebook with two distinct signal kinds (`ownership` from OpenSky per-tail metadata, `fleet_membership` from Wikipedia type-level data) writing into the observations table. Remaining collectors (Planespotters photos, airfleets ownership, AeroLOPA seat maps, airline press) are stubbed for Phase 4 with their interfaces defined. The Astro dashboard lives in `site/` and is also Phase 4 work.
+## Separate exploratory work: fleet and aircraft activity tracking
+
+The original Fleet Tracker prototype collects sampled OpenSky flight activity and distinguishes tail-level metadata from airline-fleet type summaries. Its data model, notebook audits and exploratory visualizations remain useful for engineering demonstrations, but public ADS-B coverage is incomplete and this is **not** a verified inventory of every aircraft movement, aircraft ownership history, cabin retrofit or active airline fleet.
+
+The repository includes a working authenticated OpenSky collector, a Wikipedia fleet-type collector and exploratory notebooks. Other collector interfaces and the Astro dashboard are incomplete or prototype work. An older airline-press collector [PR #10](https://github.com/yumorepos/fleet-tracker/pull/10) remains unmerged; it should not be represented as a production capability.
+
+## Current operational status
+
+The BTS studies are merged research artifacts, not an always-on flight-monitoring service. The current `nightly-collection.yml` is an intentionally **disabled, manual-only placeholder**; no scheduled collection is configured. BTS validation workflows are also manual/research-focused. Consult [GitHub Actions](https://github.com/yumorepos/fleet-tracker/actions) for dated test evidence rather than treating a historical test count as permanent.
 
 ## Stack
 
@@ -23,7 +32,7 @@ Active development. The repository contains the data model, schema, full test su
 - DuckDB for the query layer, Parquet for flight history (Hive-partitioned by airline / year / month)
 - OpenSky Network for live flights (authenticated tier)
 - Static site generated with Astro for the dashboard (Phase 4)
-- GitHub Actions for nightly collection (Phase 4)
+- GitHub Actions run automated tests on pushes and pull requests; BTS research verification is manually triggered, and recurring fleet collection remains disabled
 
 ## Layout
 
@@ -114,7 +123,9 @@ Airport codes throughout the project are ICAO (CYUL, KATL), not IATA (YUL, ATL).
 
 ## Sources and ethics
 
-Fleet Tracker uses public data only. See [docs/data-sources.md](docs/data-sources.md) for the source list and [docs/ethics.md](docs/ethics.md) for the principles that shape what is collected, displayed, and not displayed.
+The Delta research uses official [BTS monthly reporting-carrier records](https://transtats.bts.gov/PREZIP/) under [BTS 2025 Technical Directive #39](https://www.bts.gov/explore-topics-and-geography/modes/aviation/number-39-technical-directive-reporting-time). Only aggregate results are committed for the study; raw flight-level research records are not published here.
+
+The exploratory fleet work uses public data. See [docs/data-sources.md](docs/data-sources.md) for source-specific constraints and [docs/ethics.md](docs/ethics.md) for the principles that shape what is collected, displayed, and not displayed.
 
 ## Licence
 
