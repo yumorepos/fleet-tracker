@@ -74,6 +74,9 @@ def test_refuses_to_overwrite_existing_output(tmp_path):
     lambda p, r: p["months"][0].update(source_zip_sha256="wrong"),
     lambda p, r: r["months"][0].update(verdict="REVISE"),
     lambda p, r: r["months"][0]["groups"]["ATL_origin"].update(on_time=4),
+    lambda p, r: r["months"][0]["groups"]["ATL_origin"].update(canceled=0),
+    lambda p, r: r["months"][0]["groups"]["ALL_DL"][
+        "reported_positive_cause_flight_count"].update(LateAircraftDelay=0),
     lambda p, r: r["months"][0]["groups"]["ATL_origin"].update(
         late_arrivals_missing_cause_detail=1),
     lambda p, r: r["months"][0]["groups"]["Other_origin"][
