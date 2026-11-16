@@ -7,7 +7,7 @@
 - `fleet_tracker.bts_delta_pilot` -> pilot quality-gate JSON
 - `fleet_tracker.bts_driver_profile` -> verified ATL-vs-other origin / carrier-reported delay-cause JSON
 
-The builder fails closed unless both fixed-month source hashes, the original GO quality gates, integer counts, origin-group totals and several denominator/cause-detail constraints agree. Only the two historically verified Delta reporting-carrier domestic samples are accepted. It does not import or store tail numbers, individual flights or proprietary data.
+The builder compares source SHA-256 **values recorded in the input JSON** against fixed, previously verified archive hashes; it does **not** rehash raw BTS ZIP archives. It also checks the original GO quality gates, integer counts, origin-group totals and denominator/cause-detail reconciliation. Only the two historically verified Delta reporting-carrier domestic samples are accepted. It does not import or store tail numbers, individual flights or proprietary data.
 
 **Manual invocation** (after running the existing approved source workflow and obtaining the validated JSON outputs):
 
@@ -18,26 +18,28 @@ uv run python -m fleet_tracker.bts_reliability_mart \
   --output data/cache/bts_dl_2025_reliability.sqlite
 ```
 
-The builder refuses to overwrite existing output files. Store generated SQLite outputs under the ignored `data/cache/` directory, not in the public repository.
+The builder refuses to overwrite existing output files, including if another process creates the destination during generation (atomic same-filesystem hard-link publication). It explicitly closes the SQLite connection before publishing. Store generated SQLite outputs under the ignored `data/cache/` directory, not in the public repository.
 
 **Model grain.**
 
 | Object | Grain | Key information |
 | --- | --- | --- |
-| `month_kpi` | 2025 month (January or July) | Source SHA-256, original scheduled/canceled/diverted/eligible counts, arrival denominator |
-| `origin_kpi` | Month × ATL-origin versus other origin | KPI denominators, complete carrier-reported cause records, LateAircraftDelay positive counts/minutes |
-| `v_month_reliability` | Month | Arrival punctuality = on-time / valid completed arrivals; cancellation/diversion = count / scheduled |
-| `v_origin_reliability` | Month × origin group | Same denominator-safe rates and positive LateAircraftDelay / complete late-arrival cause reports |
+| `month_kpi` | Year × month (currently only 2025 January or July) | Source SHA-256, original scheduled/canceled/diverted/eligible counts, arrival denominator |
+| `origin_kpi` | Year × month × ATL-origin versus other origin | KPI denominators, complete carrier-reported cause records, LateAircraftDelay positive counts/minutes |
+| `v_month_reliability` | Year × month | Arrival punctuality = on-time / valid completed arrivals; cancellation/diversion = count / scheduled |
+| `v_origin_reliability` | Year × month × origin group | Same denominator-safe rates and positive LateAircraftDelay / complete late-arrival cause reports |
 
 Example read-only SQL:
 
 ```sql
-SELECT month, origin_group, scheduled, valid_arrival_flags,
+SELECT report_year, month, origin_group, scheduled, valid_arrival_flags,
        arrival_ontime_rate, cancellation_rate
 FROM v_origin_reliability
-ORDER BY month, origin_group;
+ORDER BY report_year, month, origin_group;
 ```
 
 **Scope limits.** Rates are descriptive, unadjusted and use the existing BTS reporting-carrier population, not all Delta-marketed operations. The ATL-origin comparison does not identify causal airport effects. LateAircraftDelay is *carrier-reported* attribution, not independently identified aircraft delay propagation. Two sampled months cannot establish seasonality. The model creates **no predictions, intervention estimates, fleet completeness claims or financial savings**.
 
-**Acceptance.** Synthetic offline tests cover SQL ratios, numerator/denominator persistence, duplicate months, source drift, incomplete causes, mismatch in segment sums, and refusal to overwrite. Passing CI on synthetic fixtures is **not** evidence that this reporting model has been executed against the actual-source outputs in this PR. Before citing it publicly as reproduced, execute the manual source-validated build and independently compare all four origin rows and the two monthly views with the existing published reports.
+**Acceptance.** Synthetic offline tests cover SQL ratios, numerator/denominator persistence, duplicate months, source drift, incomplete causes, mismatch in segment sums, and refusal to overwrite. A separate, **aggregate-only source-derived fixture** at `tests/fixtures/bts_dl_2025_verified_aggregates.json` was transcribed from the independently checked November 11, 2026 [BTS quality run](https://github.com/yumorepos/fleet-tracker/actions/runs/43081981445) and [independent SQL driver-profile run](https://github.com/yumorepos/fleet-tracker/actions/runs/43102105597). The regression test builds the actual module, checks SQLite integrity and foreign keys, then compares both monthly rows and all four origin rows against independently frozen published counts and rates. A concurrent-writer test verifies atomic no-clobber behavior.
+
+**Evidence boundary.** This establishes repeatable **aggregate-to-SQL transformation parity** against previously source-verified reports; it is **not** a new independent read/rehash of raw BTS flight ZIPs, and does not extend the historical study's coverage or claims. Before expanding to other periods, re-evaluate the data contract, source hashes and analysis design.
