@@ -7,7 +7,9 @@ independently revalidate official source data or infer causal effects.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import json
+import math
 import os
 from pathlib import Path
 import sqlite3
@@ -92,11 +94,11 @@ def validate(pilot: dict, profile: dict) -> tuple[list[tuple], list[tuple]]:
             if (type(minutes) not in (int, float) or not (0 <= minutes < 1e12)
                     or complete + missing != count(row, "late_arrival_15")
                     or positive > complete
-                    or numbers[5] + numbers[6] != numbers[4]
-                    or numbers[4] > numbers[3]
-                    or numbers[0] != numbers[1] + numbers[2] + numbers[3]):
+                    or row["on_time"] + row["late_arrival_15"] != row["valid_arrival_flags"]
+                    or row["valid_arrival_flags"] > row["completed"]
+                    or row["scheduled"] != row["canceled"] + row["diverted"] + row["completed"]):
                 raise ValueError(f"Month {month}, {group}: invalid cause or KPI grain")
-            segments.append((month, group, *numbers, complete, missing,
+            segments.append((2025, month, group, *numbers, complete, missing,
                              positive, float(minutes)))
 
         if origin_counts != expected:
@@ -108,12 +110,16 @@ def validate(pilot: dict, profile: dict) -> tuple[list[tuple], list[tuple]]:
                 raise ValueError(f"Month {month}: cause coverage segments disagree")
         source_positive = count(all_group["reported_positive_cause_flight_count"],
                                 "LateAircraftDelay")
-        if sum(row[-2] for row in segments[-2:]) != source_positive:
+        if sum(count(detail["groups"][group]["reported_positive_cause_flight_count"],
+                     "LateAircraftDelay") for group in SEGMENTS) != source_positive:
             raise ValueError(f"Month {month}: positive late-aircraft counts disagree")
         source_minutes = all_group["reported_cause_minutes"]["LateAircraftDelay"]
-        if abs(sum(row[-1] for row in segments[-2:]) - source_minutes) > .011:
+        if (type(source_minutes) not in (int, float)
+                or not math.isfinite(source_minutes) or source_minutes < 0
+                or abs(sum(detail["groups"][group]["reported_cause_minutes"]["LateAircraftDelay"]
+                           for group in SEGMENTS) - source_minutes) > .011):
             raise ValueError(f"Month {month}: reported cause minutes disagree")
-        months.append((month, sha, *(expected[key] for key in COUNT_FIELDS)))
+        months.append((2025, month, sha, *(expected[key] for key in COUNT_FIELDS)))
 
     return months, segments
 
@@ -121,15 +127,18 @@ def validate(pilot: dict, profile: dict) -> tuple[list[tuple], list[tuple]]:
 SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE month_kpi (
-    month INTEGER PRIMARY KEY CHECK (month IN (1,7)),
+    report_year INTEGER NOT NULL CHECK (report_year = 2025),
+    month INTEGER NOT NULL CHECK (month IN (1,7)),
     source_sha256 TEXT NOT NULL,
     scheduled INTEGER NOT NULL, canceled INTEGER NOT NULL,
     diverted INTEGER NOT NULL, completed INTEGER NOT NULL,
     valid_arrival_flags INTEGER NOT NULL, on_time INTEGER NOT NULL,
-    late_arrival_15 INTEGER NOT NULL
+    late_arrival_15 INTEGER NOT NULL,
+    PRIMARY KEY (report_year, month)
 );
 CREATE TABLE origin_kpi (
-    month INTEGER NOT NULL REFERENCES month_kpi(month),
+    report_year INTEGER NOT NULL CHECK (report_year = 2025),
+    month INTEGER NOT NULL CHECK (month IN (1,7)),
     origin_group TEXT NOT NULL CHECK (origin_group IN ('ATL_origin','Other_origin')),
     scheduled INTEGER NOT NULL, canceled INTEGER NOT NULL,
     diverted INTEGER NOT NULL, completed INTEGER NOT NULL,
@@ -137,17 +146,18 @@ CREATE TABLE origin_kpi (
     late_arrival_15 INTEGER NOT NULL, complete_cause_late INTEGER NOT NULL,
     missing_cause_late INTEGER NOT NULL, positive_lateaircraft INTEGER NOT NULL,
     reported_lateaircraft_minutes REAL NOT NULL,
-    PRIMARY KEY (month, origin_group)
+    PRIMARY KEY (report_year, month, origin_group),
+    FOREIGN KEY (report_year, month) REFERENCES month_kpi(report_year, month)
 );
 CREATE VIEW v_month_reliability AS
-SELECT month, scheduled, completed, valid_arrival_flags, on_time,
+SELECT report_year, month, scheduled, completed, valid_arrival_flags, on_time,
        canceled, diverted,
        ROUND(1.0 * on_time / NULLIF(valid_arrival_flags, 0), 6) AS arrival_ontime_rate,
        ROUND(1.0 * canceled / NULLIF(scheduled, 0), 6) AS cancellation_rate,
        ROUND(1.0 * diverted / NULLIF(scheduled, 0), 6) AS diversion_rate
 FROM month_kpi;
 CREATE VIEW v_origin_reliability AS
-SELECT month, origin_group, scheduled, completed, valid_arrival_flags, on_time,
+SELECT report_year, month, origin_group, scheduled, completed, valid_arrival_flags, on_time,
        late_arrival_15, complete_cause_late, missing_cause_late,
        positive_lateaircraft, reported_lateaircraft_minutes,
        ROUND(1.0 * on_time / NULLIF(valid_arrival_flags, 0), 6) AS arrival_ontime_rate,
@@ -169,14 +179,17 @@ def build(pilot: dict, profile: dict, output: Path) -> None:
                                     dir=output.parent)
     os.close(fd)
     try:
-        with sqlite3.connect(temporary) as db:
+        with closing(sqlite3.connect(temporary)) as db:
             db.executescript(SCHEMA)
-            db.executemany("INSERT INTO month_kpi VALUES (?,?,?,?,?,?,?,?,?)",
+            db.executemany("INSERT INTO month_kpi VALUES (?,?,?,?,?,?,?,?,?,?)",
                            months)
-            db.executemany("INSERT INTO origin_kpi VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            db.executemany("INSERT INTO origin_kpi VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                            segments)
             db.commit()
-        os.replace(temporary, output)
+        # Atomic no-clobber publication on the same filesystem. Unlike
+        # os.replace(), os.link() fails if another writer created the output
+        # after the preflight existence check.
+        os.link(temporary, output)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
