@@ -1,0 +1,163 @@
+{
+  "source_artifacts": {
+    "quality": "https://github.com/yumorepos/fleet-tracker/actions/runs/43081981445",
+    "profile": "https://github.com/yumorepos/fleet-tracker/actions/runs/43102105597"
+  },
+  "pilot": {
+    "both_months_core_gate": "GO",
+    "months": [
+      {
+        "month": 1,
+        "year": 2025,
+        "reporting_carrier_filter": "Reporting_Airline=DL",
+        "source_zip_sha256": "868387dcedaef1b8d8392e608e642219fde50d594c3cf2094aec858167629ccf",
+        "core_kpi_gate": "GO",
+        "counts": {
+          "dl": 76306,
+          "canceled": 2137,
+          "diverted": 144,
+          "eligible": 74025,
+          "arr15_valid": 74025,
+          "ontime": 59723
+        }
+      },
+      {
+        "month": 7,
+        "year": 2025,
+        "reporting_carrier_filter": "Reporting_Airline=DL",
+        "source_zip_sha256": "74309a3a734d5104b4c212390c06eb3acacff15124b9cea49ba7d69a609a0d19",
+        "core_kpi_gate": "GO",
+        "counts": {
+          "dl": 94066,
+          "canceled": 1320,
+          "diverted": 501,
+          "eligible": 92245,
+          "arr15_valid": 92245,
+          "ontime": 69327
+        }
+      }
+    ]
+  },
+  "profile": {
+    "months": [
+      {
+        "month": 1,
+        "year": 2025,
+        "source_sha256": "868387dcedaef1b8d8392e608e642219fde50d594c3cf2094aec858167629ccf",
+        "verdict": "GO_FOR_DESCRIPTIVE_CAUSE_AUDIT",
+        "groups": {
+          "ALL_DL": {
+            "scheduled": 76306,
+            "canceled": 2137,
+            "diverted": 144,
+            "completed": 74025,
+            "valid_arrival_flags": 74025,
+            "on_time": 59723,
+            "late_arrival_15": 14302,
+            "late_arrivals_with_complete_cause_detail": 14302,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 5626
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 305736
+            }
+          },
+          "ATL_origin": {
+            "scheduled": 17468,
+            "canceled": 831,
+            "diverted": 39,
+            "completed": 16598,
+            "valid_arrival_flags": 16598,
+            "on_time": 12777,
+            "late_arrival_15": 3821,
+            "late_arrivals_with_complete_cause_detail": 3821,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 1172
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 49899
+            }
+          },
+          "Other_origin": {
+            "scheduled": 58838,
+            "canceled": 1306,
+            "diverted": 105,
+            "completed": 57427,
+            "valid_arrival_flags": 57427,
+            "on_time": 46946,
+            "late_arrival_15": 10481,
+            "late_arrivals_with_complete_cause_detail": 10481,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 4454
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 255837
+            }
+          }
+        }
+      },
+      {
+        "month": 7,
+        "year": 2025,
+        "source_sha256": "74309a3a734d5104b4c212390c06eb3acacff15124b9cea49ba7d69a609a0d19",
+        "verdict": "GO_FOR_DESCRIPTIVE_CAUSE_AUDIT",
+        "groups": {
+          "ALL_DL": {
+            "scheduled": 94066,
+            "canceled": 1320,
+            "diverted": 501,
+            "completed": 92245,
+            "valid_arrival_flags": 92245,
+            "on_time": 69327,
+            "late_arrival_15": 22918,
+            "late_arrivals_with_complete_cause_detail": 22918,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 10603
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 583345
+            }
+          },
+          "ATL_origin": {
+            "scheduled": 21855,
+            "canceled": 268,
+            "diverted": 95,
+            "completed": 21492,
+            "valid_arrival_flags": 21492,
+            "on_time": 14993,
+            "late_arrival_15": 6499,
+            "late_arrivals_with_complete_cause_detail": 6499,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 2419
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 108597
+            }
+          },
+          "Other_origin": {
+            "scheduled": 72211,
+            "canceled": 1052,
+            "diverted": 406,
+            "completed": 70753,
+            "valid_arrival_flags": 70753,
+            "on_time": 54334,
+            "late_arrival_15": 16419,
+            "late_arrivals_with_complete_cause_detail": 16419,
+            "late_arrivals_missing_cause_detail": 0,
+            "reported_positive_cause_flight_count": {
+              "LateAircraftDelay": 8184
+            },
+            "reported_cause_minutes": {
+              "LateAircraftDelay": 474748
+            }
+          }
+        }
+      }
+    ]
+  }
+}
