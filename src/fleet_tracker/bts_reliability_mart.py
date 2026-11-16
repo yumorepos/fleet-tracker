@@ -93,13 +93,26 @@ def validate(pilot: dict, profile: dict) -> tuple[list[tuple], list[tuple]]:
                     or complete + missing != count(row, "late_arrival_15")
                     or positive > complete
                     or numbers[5] + numbers[6] != numbers[4]
-                    or numbers[4] > numbers[3]):
+                    or numbers[4] > numbers[3]
+                    or numbers[0] != numbers[1] + numbers[2] + numbers[3]):
                 raise ValueError(f"Month {month}, {group}: invalid cause or KPI grain")
             segments.append((month, group, *numbers, complete, missing,
                              positive, float(minutes)))
 
         if origin_counts != expected:
             raise ValueError(f"Month {month}: origin segments do not reconcile")
+        for category in ("late_arrivals_with_complete_cause_detail",
+                         "late_arrivals_missing_cause_detail"):
+            if sum(count(detail["groups"][group], category)
+                   for group in SEGMENTS) != count(all_group, category):
+                raise ValueError(f"Month {month}: cause coverage segments disagree")
+        source_positive = count(all_group["reported_positive_cause_flight_count"],
+                                "LateAircraftDelay")
+        if sum(row[-2] for row in segments[-2:]) != source_positive:
+            raise ValueError(f"Month {month}: positive late-aircraft counts disagree")
+        source_minutes = all_group["reported_cause_minutes"]["LateAircraftDelay"]
+        if abs(sum(row[-1] for row in segments[-2:]) - source_minutes) > .011:
+            raise ValueError(f"Month {month}: reported cause minutes disagree")
         months.append((month, sha, *(expected[key] for key in COUNT_FIELDS)))
 
     return months, segments
@@ -139,6 +152,7 @@ SELECT month, origin_group, scheduled, completed, valid_arrival_flags, on_time,
        positive_lateaircraft, reported_lateaircraft_minutes,
        ROUND(1.0 * on_time / NULLIF(valid_arrival_flags, 0), 6) AS arrival_ontime_rate,
        ROUND(1.0 * canceled / NULLIF(scheduled, 0), 6) AS cancellation_rate,
+       ROUND(1.0 * diverted / NULLIF(scheduled, 0), 6) AS diversion_rate,
        ROUND(1.0 * positive_lateaircraft / NULLIF(complete_cause_late, 0), 6)
            AS reported_lateaircraft_positive_share_of_complete_late
 FROM origin_kpi;
