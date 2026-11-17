@@ -1,0 +1,56 @@
+# Fixed historical source diagnostic; PR/manual only, no deployment or secrets.
+name: Delta BTS paired operating-day resampling
+on:
+  pull_request:
+    paths:
+      - "src/fleet_tracker/bts_day_resampling.py"
+      - "src/fleet_tracker/bts_day_resampling_sql_verify.py"
+      - "tests/test_bts_day_resampling.py"
+      - ".github/workflows/bts-day-resampling.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-replay-and-independent-resampling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline regressions before public source download
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=src python -m pytest -q tests/test_bts_bank_mix.py tests/test_bts_daily_robustness.py tests/test_bts_day_resampling.py
+      - name: Download only source-verified official 2025 BTS ZIPs
+        run: |
+          PYTHONPATH=src python -c 'from fleet_tracker.bts_delta_pilot import download; from pathlib import Path; download(1,Path("bts_1.zip")); download(7,Path("bts_7.zip"))'
+      - name: Revalidate original monthly KPIs and independent departure-bank SQL
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_delta_pilot --january bts_1.zip --july bts_7.zip --output baseline.json
+          PYTHONPATH=src python -m fleet_tracker.bts_bank_mix --january bts_1.zip --july bts_7.zip --baseline baseline.json --output bank.json
+          PYTHONPATH=src python -m fleet_tracker.bts_bank_sql_verify --january bts_1.zip --july bts_7.zip --report bank.json --output bank_sql.json
+      - name: Replay the previous daily 72+62 SQL checks
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_daily_robustness --january bts_1.zip --july bts_7.zip --baseline baseline.json --bank-report bank.json --output prior_daily.json
+          PYTHONPATH=src python -m fleet_tracker.bts_daily_sql_verify --january bts_1.zip --july bts_7.zip --report prior_daily.json --output prior_daily_sql.json
+      - name: Compute both paired-day resampling sensitivity methods
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_day_resampling --january bts_1.zip --july bts_7.zip --baseline baseline.json --bank-report bank.json --daily-report prior_daily.json --replicates 300 --output paired_day_resampling.json
+      - name: Independently recompute every resampled result using SQL
+        run: |
+          PYTHONPATH=src python -m fleet_tracker.bts_day_resampling_sql_verify --january bts_1.zip --july bts_7.zip --report paired_day_resampling.json --daily-report prior_daily.json --output paired_day_resampling_sql.json
+      - name: Remove downloaded original flight ZIPs
+        if: always()
+        run: rm -f bts_1.zip bts_7.zip
+      - name: Archive only aggregate research and verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-2025-paired-day-resampling-audit
+          path: |
+            paired_day_resampling.json
+            paired_day_resampling_sql.json
+          if-no-files-found: warn
+          retention-days: 7
