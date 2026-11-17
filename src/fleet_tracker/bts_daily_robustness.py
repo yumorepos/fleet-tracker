@@ -65,11 +65,11 @@ def calculate(stats, *, included_days, threshold):
     oa, oo = sum(x[1] for x in matched), sum(x[3] for x in matched)
     pool = na + no
     raw_matched_gap = _pp(oa / na, oo / no) if na and no else None
-    standardized_gap = (
-        _pp(sum((a+b) * oa_ / a for a, oa_, b, ob_ in matched) / pool,
-            sum((a+b) * ob_ / b for a, oa_, b, ob_ in matched) / pool)
-        if pool else None
-    )
+    standard_atl = (sum((a+b) * ao / a for a, ao, b, bo in matched) / pool
+                    if pool else None)
+    standard_other = (sum((a+b) * bo / b for a, ao, b, bo in matched) / pool
+                      if pool else None)
+    standardized_gap = _pp(standard_atl, standard_other)
     # Use unrounded internal values for each component to ensure the
     # decomposition is defined by one reference, not rounded rates.
     selection = (round(raw_matched_gap - all_gap, 3)
@@ -84,7 +84,12 @@ def calculate(stats, *, included_days, threshold):
         "selected_days": len(included_days), "matched_strata": len(matched),
         "atl_total_valid": a_all, "other_total_valid": b_all,
         "atl_matched_valid": na, "other_matched_valid": no,
+        "atl_matched_on_time": oa, "other_matched_on_time": oo,
         "atl_coverage": ca, "other_coverage": cb,
+        "matched_unadjusted_atl_rate": _rate(oa, na),
+        "matched_unadjusted_other_rate": _rate(oo, no),
+        "pooled_standardized_atl_rate": (round(standard_atl, 6) if pool else None),
+        "pooled_standardized_other_rate": (round(standard_other, 6) if pool else None),
         "all_flights_unadjusted_gap_pp": all_gap,
         "matched_subset_unadjusted_gap_pp": raw_matched_gap,
         "pooled_standardized_gap_pp": standardized_gap,
@@ -165,7 +170,7 @@ def load_month(archive: Path, month: int, baseline: dict, previous: dict):
         raise ValueError("Prior bank research contract missing")
     for group in SEGMENTS:
         for bank in BANKS:
-            observed = daily_group = Counter()
+            observed = Counter()
             for day in range(1, 32):
                 observed.update(daily[(day, group, bank)])
             expected = prior_bank[(group, bank)]
@@ -187,6 +192,10 @@ def summarize_month(month, sha, stats, daily, previous):
         "atl_coverage_of_all_valid": "atl_coverage",
         "other_coverage_of_all_valid": "other_coverage",
         "pooled_standardized_atl_minus_other_pp": "pooled_standardized_gap_pp",
+        "matched_unadjusted_atl_rate": "matched_unadjusted_atl_rate",
+        "matched_unadjusted_other_rate": "matched_unadjusted_other_rate",
+        "pooled_standardized_atl_rate": "pooled_standardized_atl_rate",
+        "pooled_standardized_other_rate": "pooled_standardized_other_rate",
     }
     for old, new in mapping.items():
         if prior[old] != current[new]:
