@@ -27,7 +27,10 @@ REQUIRED = ("FlightDate", "Reporting_Airline", "Origin", "Dest",
 COMPARE_FIELDS = (
     "minimum_valid_arrivals_each_group", "selected_days", "matched_strata",
     "atl_total_valid", "other_total_valid", "atl_matched_valid",
-    "other_matched_valid", "atl_coverage", "other_coverage",
+    "other_matched_valid", "atl_matched_on_time", "other_matched_on_time",
+    "atl_coverage", "other_coverage",
+    "matched_unadjusted_atl_rate", "matched_unadjusted_other_rate",
+    "pooled_standardized_atl_rate", "pooled_standardized_other_rate",
     "all_flights_unadjusted_gap_pp", "matched_subset_unadjusted_gap_pp",
     "pooled_standardized_gap_pp", "selection_shift_pp", "reweight_shift_pp",
     "coverage_verdict",
@@ -135,15 +138,23 @@ def independent_comparison(db, days, threshold):
             if a_all and b_all else None)
     raw = 100 * (oa / na - ob / nb) if na and nb else None
     pooled = na + nb
-    common = (100 * sum((a+b) * (ao/a - bo/b)
-                        for a, ao, b, bo in source) / pooled if pooled else None)
+    std_a = (sum((a+b) * ao/a for a, ao, b, bo in source) / pooled
+             if pooled else None)
+    std_b = (sum((a+b) * bo/b for a, ao, b, bo in source) / pooled
+             if pooled else None)
+    common = (100 * (std_a - std_b) if pooled else None)
     ca, cb = _round_ratio(na, a_all), _round_ratio(nb, b_all)
     return {
         "minimum_valid_arrivals_each_group": threshold,
         "selected_days": len(days), "matched_strata": len(source),
         "atl_total_valid": a_all, "other_total_valid": b_all,
         "atl_matched_valid": na, "other_matched_valid": nb,
+        "atl_matched_on_time": oa, "other_matched_on_time": ob,
         "atl_coverage": ca, "other_coverage": cb,
+        "matched_unadjusted_atl_rate": _round_ratio(oa, na),
+        "matched_unadjusted_other_rate": _round_ratio(ob, nb),
+        "pooled_standardized_atl_rate": round(std_a, 6) if pooled else None,
+        "pooled_standardized_other_rate": round(std_b, 6) if pooled else None,
         "all_flights_unadjusted_gap_pp": round(full, 3) if full is not None else None,
         "matched_subset_unadjusted_gap_pp": round(raw, 3) if raw is not None else None,
         "pooled_standardized_gap_pp": round(common, 3) if common is not None else None,
@@ -178,7 +189,11 @@ def verify_month(db, month, primary):
             if primary["weekday_weekend"][name][field] != expected[field]:
                 raise AssertionError(f"Month {month} {name}: {field} disagrees")
         checked += 1
-    for record in primary["leave_one_day_out_25"]["observations"]:
+    leave = primary["leave_one_day_out_25"]
+    if len(leave["observations"]) != 31 or {
+            r["excluded_day"] for r in leave["observations"]} != set(days):
+        raise AssertionError("Leave-one-day-out exclusion set must contain all 31 days")
+    for record in leave["observations"]:
         removed = record["excluded_day"]
         expected = independent_comparison(db, [d for d in days if d != removed], 25)
         for field, key in (("standardized_gap_pp", "pooled_standardized_gap_pp"),
@@ -190,6 +205,26 @@ def verify_month(db, month, primary):
         checked += 1
     if checked != 36:
         raise AssertionError("Expected three thresholds, two day types and 31 leave-one-out exclusions")
+    found = [r["standardized_gap_pp"] for r in leave["observations"]
+             if r["standardized_gap_pp"] is not None]
+    full = primary["threshold_sensitivity"]["25"]["pooled_standardized_gap_pp"]
+    expected_summary = {
+        "valid_exclusions": len(found),
+        "min_gap_pp": min(found) if found else None,
+        "max_gap_pp": max(found) if found else None,
+        "largest_absolute_shift_from_full_pp": (
+            round(max(abs(v - full) for v in found), 3)
+            if found and full is not None else None),
+        "sign_flips_vs_full": (sum(v * full < 0 for v in found)
+                               if full is not None else None),
+        "recompute_matches_after_exclusion": True,
+    }
+    for key, value in expected_summary.items():
+        if leave[key] != value:
+            raise AssertionError(f"Month {month}: invalid leave-one-day-out summary {key}")
+    if len(primary["daily_unadjusted"]) != 31 or {
+            r["day"] for r in primary["daily_unadjusted"]} != set(days):
+        raise AssertionError("Expected exactly 31 daily records")
     observed = db.execute("""
         SELECT day, grp, SUM(n), SUM(o)
         FROM cell GROUP BY day, grp ORDER BY day, grp
