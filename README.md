@@ -53,6 +53,21 @@ See [docs/DESIGN.md](docs/DESIGN.md) for the architecture, [docs/PLAN.md](docs/P
 
 ## Running locally
 
+### Verify the Delta/SQLite case study (no aviation-data credentials)
+
+With Python 3.12+ and [uv](https://docs.astral.sh/uv/) installed, run from the repository root:
+
+```bash
+uv sync --frozen
+uv run pytest -q tests/test_bts_reliability_accepted_aggregates.py tests/test_bts_reliability_mart.py
+```
+
+These tests build and query a temporary SQLite reporting database using the **committed, previously source-verified January/July 2025 Delta aggregate fixture**, and check reporting ratios, integrity, input rejection, and overwrite protection. They require **no BTS download, OpenSky connection, or aviation API credentials**; the initial dependency installation may still require internet access.
+
+**Evidence boundary:** Passing these tests demonstrates aggregate-to-SQL transformation and regression parity, **not** a fresh independent download, checksum verification, or flight-level reanalysis of BTS source archives. See [SQLite reporting method](docs/BTS_RELIABILITY_SQLITE_MART.md), [original BTS source/KPI validation](docs/BTS_DELTA_PILOT_2025_RESULTS.md), and [independent origin/cause audit](docs/BTS_DELTA_SEGMENT_2025_RESULTS.md) for the historical source-validation evidence and scope limits.
+
+### Full tests and separate exploratory OpenSky collector
+
 ```bash
 # Install
 uv sync
