@@ -43,8 +43,10 @@ Review the exact documentation diff against sources, denominators, limitations, 
 | Check | Initial status |
 | --- | --- |
 | Current source/documentation evidence reviewed | See read-only audit |
-| Tests run for original setup | NOT RUN (read-only audit phase); Stage B CI to be checked on PR #18 |
+| Test execution | **PASS:** full suite **194 passed** on [PR #18 CI run #43990791595](https://github.com/yumorepos/fleet-tracker/actions/runs/43990791595); 17 listed SQLite tests passed inside the full suite |
 | README verification quick-start authorized | YES, narrow scope only |
-| Review verdict | Pending CI and diff evidence |
+| Review verdict | **PASS for bounded documentation scope** in [draft PR #18 review](https://github.com/yumorepos/fleet-tracker/pull/18); same-assistant second verification pass, not a separate external reviewer |
 | Merge / deployment authorized | NO |
-| Next decision | Human decides whether to approve any merge; no automatic merge or deployment |
+| Next decision | Owner decides whether to merge later; no automatic merge, deployment, or scheduled collection |
+
+**Execution clarification (Nov 16, 2026):** The actual GitHub CI command was `uv run pytest -v`; the focused `-q` command in README was not separately executed. Neither command revalidated raw BTS archives. A non-blocking GitHub Actions Node.js 20 deprecation warning was observed and left outside this documentation-only change. The Stage A audit is preserved as a historical read-only checkpoint.
