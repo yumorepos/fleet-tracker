@@ -24,7 +24,7 @@ Make the existing airline operations analytics portfolio easier to inspect, repr
 ## Hard safeguards
 
 - **Never change `main` directly. Never merge, deploy, trigger paid services, publish new material, or enable automated collection without explicit owner approval.**
-- Initial Pilot 01 permits agent configuration and audit notes only. It **does not** authorize edits to research code, validated numbers, README, the public case study, or workflows.
+- Pilot 01 was initially authorized for agent setup and a read-only audit. The owner **subsequently approved one narrow README Delta/SQLite verification quick-start, relevant tests, and a review** on this feature branch. This does **not** authorize research code, validated-number, public website, or workflow edits; further changes require new approval.
 - Do not download large raw BTS archives in an initial audit, start collectors, or request OpenSky/API credentials.
 - Do not expose proprietary employer data, passenger records, personal data, credentials, tokens, or ignored/raw flight datasets.
 - Do not invent test results, independent verification, source evidence, financial savings, operational interventions, or predictive benefit.
