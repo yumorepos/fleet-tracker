@@ -1,6 +1,6 @@
 # Delta BTS January/July 2025 — daily robustness and selection sensitivity
 
-**Evidence status:** Official-source **GO for descriptive sensitivity screening**. Original BTS ZIP checks, month-level KPIs and bank/25-flight match findings preserved. First successful source and independent SQL run: [GitHub Actions #43991406039](https://github.com/yumorepos/fleet-tracker/actions/runs/43991406039). The final PR version additionally reconciles all four individual published matched on-time rates and verifies leave-one-day-out summaries; confirm its CI before citing that strengthened contract. [Predeclared analytical protocol](BTS_DAILY_ROBUSTNESS_2025_PROTOCOL.md).
+**Evidence status:** Official-source **GO for descriptive sensitivity screening**. Original BTS ZIP checks, month-level KPIs, all four matched on-time rates and the 25-flight departure-bank findings are preserved. The complete strengthened source audit and independent SQL verification passed in [GitHub Actions #43991663523](https://github.com/yumorepos/fleet-tracker/actions/runs/43991663523). [Predeclared analytical protocol](BTS_DAILY_ROBUSTNESS_2025_PROTOCOL.md).
 
 **Decision question:** Does the previously verified ATL-origin versus other-origin arrival-punctuality comparison remain descriptively similar when analysts change the number of flights required per matched destination-bank cell, restrict operations to weekday/weekend, or exclude an individual BTS FlightDate?
 
